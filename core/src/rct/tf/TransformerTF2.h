@@ -1,5 +1,5 @@
 /*
- * Transformer.h
+ * TransformerTF2.h
  *
  *  Created on: 05.12.2014
  *      Author: leon
@@ -7,21 +7,18 @@
 
 #pragma once
 
-#include "Transform.h"
-#include <Eigen/Geometry>
-#include <string>
-#include <boost/integer.hpp>
-#include <boost/thread.hpp>
+#include "../Transformer.h"
+#include <tf2/buffer_core.h>
 
 namespace rct {
 
-class Transformer {
+class TransformerTF2: public Transformer {
 public:
-	Transformer();
-	virtual ~Transformer();
+	TransformerTF2(const boost::posix_time::time_duration& cacheTime);
+	virtual ~TransformerTF2();
 
 	/** \brief Clear all data */
-	virtual void clear();
+	void clear();
 
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store
@@ -29,8 +26,8 @@ public:
 	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
 	 * \return True unless an error occured
 	 */
-	virtual bool setTransform(const Transform& transform,
-			const std::string &authority, bool is_static = false) = 0;
+	bool setTransform(const Transform& transform,
+			const std::string &authority, bool is_static = false);
 
 	/** \brief Get the transform between two frames by frame ID.
 	 * \param target_frame The frame to which data should be transformed
@@ -39,8 +36,8 @@ public:
 	 * \return The transform between the frames
 	 *
 	 */
-	virtual Transform lookupTransform(const std::string& target_frame,
-			const std::string& source_frame, boost::uint64_t time) const = 0;
+	Transform lookupTransform(const std::string& target_frame,
+			const std::string& source_frame, const boost::posix_time::ptime& time) const;
 
 	/** \brief Get the transform between two frames by frame ID assuming fixed frame.
 	 * \param target_frame The frame to which data should be transformed
@@ -54,9 +51,9 @@ public:
 	 * tf2::ExtrapolationException, tf2::InvalidArgumentException
 	 */
 
-	virtual Transform lookupTransform(const std::string& target_frame,
-			boost::uint64_t target_time, const std::string& source_frame,
-			boost::uint64_t source_time, const std::string& fixed_frame) const = 0;
+	Transform lookupTransform(const std::string& target_frame,
+			const boost::posix_time::ptime &target_time, const std::string& source_frame,
+			const boost::posix_time::ptime &source_time, const std::string& fixed_frame) const;
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -65,9 +62,9 @@ public:
 	 * \param error_msg A pointer to a string which will be filled with why the transform failed, if not NULL
 	 * \return True if the transform is possible, false otherwise
 	 */
-	virtual bool canTransform(const std::string& target_frame,
-			const std::string& source_frame, boost::uint64_t time,
-			std::string* error_msg = NULL) const = 0;
+	bool canTransform(const std::string& target_frame,
+			const std::string& source_frame, const boost::posix_time::ptime &time,
+			std::string* error_msg = NULL) const;
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -78,13 +75,16 @@ public:
 	 * \param error_msg A pointer to a string which will be filled with why the transform failed, if not NULL
 	 * \return True if the transform is possible, false otherwise
 	 */
-	virtual bool canTransform(const std::string& target_frame,
-			boost::uint64_t target_time, const std::string& source_frame,
-			boost::uint64_t source_time, const std::string& fixed_frame,
-			std::string* error_msg = NULL) const = 0;
+	bool canTransform(const std::string& target_frame,
+			const boost::posix_time::ptime &target_time, const std::string& source_frame,
+			const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
+			std::string* error_msg = NULL) const;
 
 private:
+	tf2::BufferCore tfBuffer;
 
+	void convertTransformToTf(const Transform &t, geometry_msgs::TransformStamped &tOut) const;
+	void convertTfToTransform(const geometry_msgs::TransformStamped &t, Transform &tOut) const;
 };
 
 } /* namespace rct */
