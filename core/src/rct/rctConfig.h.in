@@ -1,0 +1,4 @@
+#define RCT_VERSION @RCT_VERSION@
+#define RCT_VERSION_CONT @RCT_VERSION_CONT@
+#cmakedefine RCT_HAVE_TF2
+#cmakedefine RCT_HAVE_RSB

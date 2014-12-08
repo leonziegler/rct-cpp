@@ -6,13 +6,32 @@
  */
 
 #include "TransformerFactory.h"
+#include "rctConfig.h"
+#ifdef RCT_HAVE_TF2
+#include "impl/TransformerTF2.h"
+#endif
+namespace rct {
 
 TransformerFactory::TransformerFactory() {
-	// TODO Auto-generated constructor stub
-
 }
 
 TransformerFactory::~TransformerFactory() {
-	// TODO Auto-generated destructor stub
 }
 
+TransformerFactory& getTransformerFactory() {
+	return TransformerFactory::getInstanceBase();
+}
+
+TransformerFactory& TransformerFactory::getInstanceBase() {
+	return rsc::patterns::Singleton<TransformerFactory>::getInstance();
+}
+
+Transformer::Ptr TransformerFactory::createTransformer(const boost::posix_time::time_duration& cacheTime) const {
+#ifdef RCT_HAVE_TF2
+	return TransformerTF2::Ptr(new TransformerTF2(cacheTime));
+#else
+	throw TransformerFactoryException("No known logic implementation available!");
+#endif
+}
+
+}

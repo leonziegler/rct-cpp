@@ -17,6 +17,7 @@ namespace rct {
 
 class Transformer {
 public:
+	typedef boost::shared_ptr<Transformer> Ptr;
 	Transformer();
 	virtual ~Transformer();
 
@@ -40,7 +41,7 @@ public:
 	 *
 	 */
 	virtual Transform lookupTransform(const std::string& target_frame,
-			const std::string& source_frame, boost::uint64_t time) const = 0;
+			const std::string& source_frame, const boost::posix_time::ptime& time) const = 0;
 
 	/** \brief Get the transform between two frames by frame ID assuming fixed frame.
 	 * \param target_frame The frame to which data should be transformed
@@ -55,8 +56,8 @@ public:
 	 */
 
 	virtual Transform lookupTransform(const std::string& target_frame,
-			boost::uint64_t target_time, const std::string& source_frame,
-			boost::uint64_t source_time, const std::string& fixed_frame) const = 0;
+			const boost::posix_time::ptime& target_time, const std::string& source_frame,
+			const boost::posix_time::ptime& source_time, const std::string& fixed_frame) const = 0;
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -66,7 +67,7 @@ public:
 	 * \return True if the transform is possible, false otherwise
 	 */
 	virtual bool canTransform(const std::string& target_frame,
-			const std::string& source_frame, boost::uint64_t time,
+			const std::string& source_frame, const boost::posix_time::ptime& time,
 			std::string* error_msg = NULL) const = 0;
 
 	/** \brief Test if a transform is possible
@@ -79,8 +80,8 @@ public:
 	 * \return True if the transform is possible, false otherwise
 	 */
 	virtual bool canTransform(const std::string& target_frame,
-			boost::uint64_t target_time, const std::string& source_frame,
-			boost::uint64_t source_time, const std::string& fixed_frame,
+			const boost::posix_time::ptime &target_time, const std::string& source_frame,
+			const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
 			std::string* error_msg = NULL) const = 0;
 
 private:

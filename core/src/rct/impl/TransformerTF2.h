@@ -14,6 +14,7 @@ namespace rct {
 
 class TransformerTF2: public Transformer {
 public:
+	typedef boost::shared_ptr<TransformerTF2> Ptr;
 	TransformerTF2(const boost::posix_time::time_duration& cacheTime);
 	virtual ~TransformerTF2();
 

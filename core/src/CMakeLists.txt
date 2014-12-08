@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 2.6)
+
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/rct/rctConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/rct/rctConfig.h)
             
 # --- generate executable
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-ADD_LIBRARY(${RCT_NAME} SHARED rct/TransformerTF2.cpp)
+ADD_LIBRARY(${RCT_NAME} SHARED rct/TransformerFactory.cpp rct/impl/TransformerTF2.cpp)
 TARGET_LINK_LIBRARIES(${RCT_NAME} ${RSB_LIBRARIES} ${RSBXML_LIBRARIES})
 SET_TARGET_PROPERTIES(${RCT_NAME} PROPERTIES
                                  VERSION ${RSBAM_VERSION}
