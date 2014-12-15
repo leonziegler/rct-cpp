@@ -5,6 +5,8 @@ INCLUDE(UsePkgConfig)
 # --- general project setup ---
 PROJECT("RoboticsCoordinateTransform")
 SET(RCT_NAME rct)
+SET(RCT_NAME_RSB rctrsb)
+SET(RCT_NAME_ROS rctros)
 SET(RCT_VERSION_MAJOR "1")
 SET(RCT_VERSION_MINOR "0")
 SET(RCT_VERSION_REVISION "0")
