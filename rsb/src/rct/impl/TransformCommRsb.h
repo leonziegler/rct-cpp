@@ -8,8 +8,10 @@
 #pragma once
 
 #include <rct/impl/TransformCommunicator.h>
+#define BOOST_SIGNALS_NO_DEPRECATION_WARNING
 #include <rsb/Listener.h>
 #include <rsb/Informer.h>
+#include <boost/shared_ptr.hpp>
 
 #include "FrameTransform.pb.h"
 
@@ -17,7 +19,7 @@ namespace rct {
 
 class TransformCommRsb: public TransformCommunicator {
 public:
-	typedef boost::shared_ptr<TransformCommRos> Ptr;
+	typedef boost::shared_ptr<TransformCommRsb> Ptr;
 	TransformCommRsb(const boost::posix_time::time_duration& cacheTime, TransformListener::Ptr& listener);
 	virtual ~TransformCommRsb();
 

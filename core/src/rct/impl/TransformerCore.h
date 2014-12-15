@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <rct/Transform.h>
 #include <Eigen/Geometry>
 #include <string>
 #include <boost/integer.hpp>
@@ -16,7 +17,7 @@ namespace rct {
 
 class TransformerCore {
 public:
-	typedef boost::shared_ptr<Transformer> Ptr;
+	typedef boost::shared_ptr<TransformerCore> Ptr;
 	TransformerCore();
 	virtual ~TransformerCore();
 

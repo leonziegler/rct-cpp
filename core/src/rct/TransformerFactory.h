@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Transformer.h"
+#include "impl/TransformerCore.h"
 #include <rsc/patterns/Singleton.h>
 #include <exception>
 
@@ -21,9 +21,9 @@ class TransformerFactoryException: public std::exception {
 public:
 	TransformerFactoryException(const std::string &msg) : msg(msg) {
 	}
-	virtual ~TransformerFactoryException() {
+	virtual ~TransformerFactoryException() throw() {
 	}
-	virtual const char* what() const {
+	virtual const char* what() const throw() {
 		return msg.c_str();
 	}
 private:
@@ -34,12 +34,13 @@ class TransformerFactory: private rsc::patterns::Singleton<TransformerFactory> {
 public:
 	virtual ~TransformerFactory();
 
-	Transformer::Ptr createTransformer(const boost::posix_time::time_duration& cacheTime) const;
+	TransformerCore::Ptr createTransformer(const boost::posix_time::time_duration& cacheTime) const;
 
+	friend class rsc::patterns::Singleton<TransformerFactory>;
 private:
 	TransformerFactory();
-	friend TransformerFactory& getTransformerFactory();
 	static TransformerFactory& getInstanceBase();
+	friend TransformerFactory& getTransformerFactory();
 };
 
 }  // namespace rct

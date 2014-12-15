@@ -6,7 +6,7 @@
  */
 
 #include "TransformerFactory.h"
-#include "rctConfig.h"
+#include "rct/rctConfig.h"
 #ifdef RCT_HAVE_TF2
 #include "impl/TransformerTF2.h"
 #endif
@@ -26,7 +26,7 @@ TransformerFactory& TransformerFactory::getInstanceBase() {
 	return rsc::patterns::Singleton<TransformerFactory>::getInstance();
 }
 
-Transformer::Ptr TransformerFactory::createTransformer(const boost::posix_time::time_duration& cacheTime) const {
+TransformerCore::Ptr TransformerFactory::createTransformer(const boost::posix_time::time_duration& cacheTime) const {
 #ifdef RCT_HAVE_TF2
 	return TransformerTF2::Ptr(new TransformerTF2(cacheTime));
 #else

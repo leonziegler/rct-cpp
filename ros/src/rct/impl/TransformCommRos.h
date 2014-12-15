@@ -35,7 +35,7 @@ public:
 	virtual void removeTransformListener(TransformListener::Ptr& listener);
 private:
 	tf2_ros::Buffer tfBuffer;
-	tf2_ros::TransformListener tfListener;
+	tf2_ros::TransformListener* tfListener;
 	tf2_ros::TransformBroadcaster tfBroadcaster;
 	std::vector<TransformListener::Ptr> listeners;
 	boost::mutex mutex;

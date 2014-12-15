@@ -17,9 +17,9 @@ using namespace rsb;
 namespace rct {
 
 TransformCommRsb::TransformCommRsb(
-		const boost::posix_time::time_duration& cacheTime, TransformListener::Ptr& listener) {
+		const boost::posix_time::time_duration& cacheTime, TransformListener::Ptr& l) {
 
-	addTransformListener(listener);
+	addTransformListener(l);
 
 	converter::ProtocolBufferConverter<FrameTransform>::Ptr converter0(new rsb::converter::ProtocolBufferConverter<FrameTransform>());
     converter::converterRepository<string>()->registerConverter(converter0);
@@ -54,23 +54,22 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms) {
 	return true;
 }
 
-void TransformCommRsb::addTransformListener(TransformListener::Ptr& listener) {
+void TransformCommRsb::addTransformListener(TransformListener::Ptr& l) {
 	boost::mutex::scoped_lock(mutex);
-	listeners.push_back(listener);
+	listeners.push_back(l);
 }
 
 void TransformCommRsb::removeTransformListener(
-		TransformListener::Ptr& listener) {
+		TransformListener::Ptr& l) {
 	boost::mutex::scoped_lock(mutex);
-	vector<TransformListener::Ptr> it = find(listeners.begin(), listeners.end(),
-			listener);
+	vector<TransformListener::Ptr>::iterator it = find(listeners.begin(), listeners.end(), l);
 	if (it != listeners.end()) {
 		listeners.erase(it);
 	}
 }
 
 void TransformCommRsb::frameTransformCallback(const boost::shared_ptr<FrameTransform> &t) {
-	vector<TransformListener::Ptr> it;
+	vector<TransformListener::Ptr>::iterator it;
 	boost::mutex::scoped_lock(mutex);
 	for (it = listeners.begin(); it != listeners.end(); ++it) {
 		TransformListener::Ptr l = *it;
@@ -80,7 +79,7 @@ void TransformCommRsb::frameTransformCallback(const boost::shared_ptr<FrameTrans
 	}
 }
 
-static void TransformCommRsb::convertTransformToPb(const Transform& transform,
+void TransformCommRsb::convertTransformToPb(const Transform& transform,
 		boost::shared_ptr<FrameTransform> &t) {
 
 	boost::posix_time::ptime epoch(boost::gregorian::date(1970,1,1));
@@ -97,7 +96,7 @@ static void TransformCommRsb::convertTransformToPb(const Transform& transform,
 	t->mutable_transform()->mutable_rotation()->set_qy(transform.getRotationQuat().y());
 	t->mutable_transform()->mutable_rotation()->set_qz(transform.getRotationQuat().z());
 }
-static void TransformCommRsb::convertPbToTransform(
+void TransformCommRsb::convertPbToTransform(
 		const boost::shared_ptr<FrameTransform> &t, Transform& transform) {
 
 	const boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
