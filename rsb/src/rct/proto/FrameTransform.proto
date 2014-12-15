@@ -1,0 +1,36 @@
+package rct;
+
+import "rst/geometry/Pose.proto";
+import "rst/timing/Timestamp.proto";
+
+option java_outer_classname = "FrameTransform";
+option java_package = "rct.proto";
+
+/**
+ * This is a container for rct internal use.
+ *
+ *
+ * @author Leon Ziegler <lziegler@techfak.uni-bielefeld.de>
+ */
+message FrameTransform {
+
+    /**
+     * 
+     */
+    optional        rst.geometry.Pose    transform     = 1;
+    
+    /**
+     * 
+     */
+    required        string               frame_parent  = 2;
+
+    /**
+     * 
+     */
+    required        string               frame_child   = 3;
+    
+    /**
+     * 
+     */
+    optional        rst.timing.Timestamp time          = 4;
+}
