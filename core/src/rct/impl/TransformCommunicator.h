@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "Transform.h"
+#include "../Transform.h"
+#include "TransformListener.h"
 #include <Eigen/Geometry>
 #include <string>
 #include <boost/integer.hpp>
@@ -15,11 +16,11 @@
 
 namespace rct {
 
-class Transformer {
+class TransformCommunicator {
 public:
-	typedef boost::shared_ptr<Transformer> Ptr;
-	Transformer();
-	virtual ~Transformer();
+	typedef boost::shared_ptr<TransformCommunicator> Ptr;
+	TransformCommunicator();
+	virtual ~TransformCommunicator();
 
 
 	/** \brief Add transform information to the rct data structure
@@ -28,7 +29,7 @@ public:
 	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
 	 * \return True unless an error occured
 	 */
-	virtual bool sendTransform(const Transform& transform);
+	virtual bool sendTransform(const Transform& transform) = 0;
 
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store
@@ -36,7 +37,7 @@ public:
 	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
 	 * \return True unless an error occured
 	 */
-	virtual bool sendTransform(const std::vector<Transform>& transforms);
+	virtual bool sendTransform(const std::vector<Transform>& transforms) = 0;
 
 	/** \brief Get the transform between two frames by frame ID.
 	 * \param target_frame The frame to which data should be transformed
@@ -46,7 +47,7 @@ public:
 	 *
 	 */
 	virtual Transform lookupTransform(const std::string& target_frame,
-			const std::string& source_frame, const boost::posix_time::ptime& time) const;
+			const std::string& source_frame, const boost::posix_time::ptime& time) const = 0;
 
 	/** \brief Get the transform between two frames by frame ID assuming fixed frame.
 	 * \param target_frame The frame to which data should be transformed
@@ -62,7 +63,7 @@ public:
 
 	virtual Transform lookupTransform(const std::string& target_frame,
 			const boost::posix_time::ptime& target_time, const std::string& source_frame,
-			const boost::posix_time::ptime& source_time, const std::string& fixed_frame) const;
+			const boost::posix_time::ptime& source_time, const std::string& fixed_frame) const = 0;
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -73,7 +74,7 @@ public:
 	 */
 	virtual bool canTransform(const std::string& target_frame,
 			const std::string& source_frame, const boost::posix_time::ptime& time,
-			std::string* error_msg = NULL) const;
+			std::string* error_msg = NULL) const = 0;
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -87,10 +88,10 @@ public:
 	virtual bool canTransform(const std::string& target_frame,
 			const boost::posix_time::ptime &target_time, const std::string& source_frame,
 			const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
-			std::string* error_msg = NULL) const;
+			std::string* error_msg = NULL) const = 0;
 
-private:
-
+	virtual void addTransformListener(TransformListener::Ptr& listener) = 0;
+	virtual void removeTransformListener(TransformListener::Ptr& listener) = 0;
 };
 
 } /* namespace rct */

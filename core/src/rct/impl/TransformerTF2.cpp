@@ -20,8 +20,8 @@ TransformerTF2::TransformerTF2(const posix_time::time_duration& cacheTime) :
 TransformerTF2::~TransformerTF2() {
 }
 
-void TransformerTF2::convertTransformToTf(const Transform &t,
-		geometry_msgs::TransformStamped &tOut) const {
+static void TransformerTF2::convertTransformToTf(const Transform &t,
+		geometry_msgs::TransformStamped &tOut) {
 
 	Quaterniond eigenQuat = t.getRotationQuat();
 	tOut.header.frame_id = t.getFrameParent();
@@ -35,8 +35,8 @@ void TransformerTF2::convertTransformToTf(const Transform &t,
 	tOut.transform.translation.y = t.getTranslation()(1);
 	tOut.transform.translation.z = t.getTranslation()(2);
 }
-void TransformerTF2::convertTfToTransform(const geometry_msgs::TransformStamped &t,
-		Transform &tOut) const {
+static void TransformerTF2::convertTfToTransform(const geometry_msgs::TransformStamped &t,
+		Transform &tOut) {
 	tOut.setFrameChild(t.child_frame_id);
 	tOut.setFrameParent(t.header.frame_id);
 	tOut.setTime(t.header.stamp.toBoost());

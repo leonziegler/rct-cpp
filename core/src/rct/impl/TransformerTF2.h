@@ -7,12 +7,12 @@
 
 #pragma once
 
-#include "../Transformer.h"
+#include "TransformerCore.h"
 #include <tf2/buffer_core.h>
 
 namespace rct {
 
-class TransformerTF2: public Transformer {
+class TransformerTF2: public TransformerCore {
 public:
 	typedef boost::shared_ptr<TransformerTF2> Ptr;
 	TransformerTF2(const boost::posix_time::time_duration& cacheTime);
@@ -29,6 +29,14 @@ public:
 	 */
 	bool setTransform(const Transform& transform,
 			const std::string &authority, bool is_static = false);
+
+	/** \brief Add transform information to the rct data structure
+	 * \param transform The transform to store
+	 * \param authority The source of the information for this transform
+	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
+	 * \return True unless an error occured
+	 */
+	bool sendTransform(const Transform& transform);
 
 	/** \brief Get the transform between two frames by frame ID.
 	 * \param target_frame The frame to which data should be transformed
@@ -81,11 +89,13 @@ public:
 			const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
 			std::string* error_msg = NULL) const;
 
+
+	static void convertTransformToTf(const Transform &t, geometry_msgs::TransformStamped &tOut);
+	static void convertTfToTransform(const geometry_msgs::TransformStamped &t, Transform &tOut);
+
 private:
 	tf2::BufferCore tfBuffer;
 
-	void convertTransformToTf(const Transform &t, geometry_msgs::TransformStamped &tOut) const;
-	void convertTfToTransform(const geometry_msgs::TransformStamped &t, Transform &tOut) const;
 };
 
 } /* namespace rct */

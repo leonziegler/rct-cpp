@@ -1,26 +1,25 @@
 /*
- * Transformer.h
+ * TransformerRos.h
  *
- *  Created on: 05.12.2014
+ *  Created on: Dec 14, 2014
  *      Author: leon
  */
 
 #pragma once
 
-#include "Transform.h"
-#include <Eigen/Geometry>
-#include <string>
-#include <boost/integer.hpp>
-#include <boost/thread.hpp>
+#include <rct/impl/TransformCommunicator.h>
+
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 namespace rct {
 
-class Transformer {
+class TransformCommRos: public TransformCommunicator {
 public:
-	typedef boost::shared_ptr<Transformer> Ptr;
-	Transformer();
-	virtual ~Transformer();
-
+	typedef boost::shared_ptr<TransformCommRos> Ptr;
+	TransformCommRos(const boost::posix_time::time_duration& cacheTime);
+	virtual ~TransformCommRos();
 
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store
@@ -29,14 +28,7 @@ public:
 	 * \return True unless an error occured
 	 */
 	virtual bool sendTransform(const Transform& transform);
-
-	/** \brief Add transform information to the rct data structure
-	 * \param transform The transform to store
-	 * \param authority The source of the information for this transform
-	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
-	 * \return True unless an error occured
-	 */
-	virtual bool sendTransform(const std::vector<Transform>& transforms);
+	virtual bool sendTransform(const std::vector<Transform>& transforms) = 0;
 
 	/** \brief Get the transform between two frames by frame ID.
 	 * \param target_frame The frame to which data should be transformed
@@ -89,8 +81,16 @@ public:
 			const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
 			std::string* error_msg = NULL) const;
 
-private:
 
+	virtual void addTransformListener(TransformListener::Ptr& listener);
+	virtual void removeTransformListener(TransformListener::Ptr& listener);
+private:
+	tf2_ros::Buffer tfBuffer;
+	tf2_ros::TransformListener tfListener;
+	tf2_ros::TransformBroadcaster tfBroadcaster;
+	std::vector<TransformListener::Ptr> listeners;
+
+	void transformCallback(tf2::TransformableRequestHandle handle, const std::string& target, const std::string& source, ros::Time time, tf2::TransformableResult result);
 };
 
 } /* namespace rct */
