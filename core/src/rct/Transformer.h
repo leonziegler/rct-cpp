@@ -21,7 +21,6 @@ public:
 	Transformer();
 	virtual ~Transformer();
 
-
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store
 	 * \param authority The source of the information for this transform
