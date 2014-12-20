@@ -94,4 +94,9 @@ bool TransformerTF2::canTransform(const std::string& target_frame,
 	return tfBuffer.canTransform(target_frame, ros::Time().fromBoost(target_time), source_frame, ros::Time().fromBoost(source_time), fixed_frame, error_msg);
 }
 
+void TransformerTF2::newTransformAvailable(const rct::Transform& t) {
+	// TODO authority?
+	setTransform(t, "");
+}
+
 } /* namespace rct */

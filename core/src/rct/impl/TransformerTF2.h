@@ -93,6 +93,10 @@ public:
 	static void convertTransformToTf(const Transform &t, geometry_msgs::TransformStamped &tOut);
 	static void convertTfToTransform(const geometry_msgs::TransformStamped &t, Transform &tOut);
 
+	void printContents(std::ostream& stream) const;
+
+	virtual void newTransformAvailable(const rct::Transform&);
+
 private:
 	tf2::BufferCore tfBuffer;
 

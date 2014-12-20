@@ -8,6 +8,9 @@
 #pragma once
 
 #include "Transform.h"
+#include "TransformerConfig.h"
+#include "impl/TransformCommunicator.h"
+#include "impl/TransformerCore.h"
 #include <Eigen/Geometry>
 #include <string>
 #include <boost/integer.hpp>
@@ -15,10 +18,11 @@
 
 namespace rct {
 
-class Transformer {
+class Transformer: public virtual rsc::runtime::Printable,
+		public boost::noncopyable {
 public:
 	typedef boost::shared_ptr<Transformer> Ptr;
-	Transformer();
+	Transformer(const TransformerCore::Ptr &core, const TransformCommunicator::Ptr &comm, const TransformerConfig &conf = TransformerConfig());
 	virtual ~Transformer();
 
 	/** \brief Add transform information to the rct data structure
@@ -45,7 +49,8 @@ public:
 	 *
 	 */
 	virtual Transform lookupTransform(const std::string& target_frame,
-			const std::string& source_frame, const boost::posix_time::ptime& time) const;
+			const std::string& source_frame,
+			const boost::posix_time::ptime& time) const;
 
 	/** \brief Get the transform between two frames by frame ID assuming fixed frame.
 	 * \param target_frame The frame to which data should be transformed
@@ -60,8 +65,10 @@ public:
 	 */
 
 	virtual Transform lookupTransform(const std::string& target_frame,
-			const boost::posix_time::ptime& target_time, const std::string& source_frame,
-			const boost::posix_time::ptime& source_time, const std::string& fixed_frame) const;
+			const boost::posix_time::ptime& target_time,
+			const std::string& source_frame,
+			const boost::posix_time::ptime& source_time,
+			const std::string& fixed_frame) const;
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -71,7 +78,8 @@ public:
 	 * \return True if the transform is possible, false otherwise
 	 */
 	virtual bool canTransform(const std::string& target_frame,
-			const std::string& source_frame, const boost::posix_time::ptime& time,
+			const std::string& source_frame,
+			const boost::posix_time::ptime& time,
 			std::string* error_msg = NULL) const;
 
 	/** \brief Test if a transform is possible
@@ -84,12 +92,19 @@ public:
 	 * \return True if the transform is possible, false otherwise
 	 */
 	virtual bool canTransform(const std::string& target_frame,
-			const boost::posix_time::ptime &target_time, const std::string& source_frame,
-			const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
+			const boost::posix_time::ptime &target_time,
+			const std::string& source_frame,
+			const boost::posix_time::ptime &source_time,
+			const std::string& fixed_frame,
 			std::string* error_msg = NULL) const;
 
+	void printContents(std::ostream& stream) const;
+	TransformerConfig getConfig() const;
 private:
 
+	TransformCommunicator::Ptr comm;
+	TransformerCore::Ptr core;
+	TransformerConfig config;
 };
 
 } /* namespace rct */

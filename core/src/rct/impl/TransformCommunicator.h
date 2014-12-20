@@ -11,12 +11,15 @@
 #include "TransformListener.h"
 #include <Eigen/Geometry>
 #include <string>
+#include <rsc/runtime/Printable.h>
+#include <boost/noncopyable.hpp>
 #include <boost/integer.hpp>
 #include <boost/thread.hpp>
 
 namespace rct {
 
-class TransformCommunicator {
+class TransformCommunicator: public virtual rsc::runtime::Printable,
+		public boost::noncopyable {
 public:
 	typedef boost::shared_ptr<TransformCommunicator> Ptr;
 	TransformCommunicator();
@@ -39,8 +42,8 @@ public:
 	 */
 	virtual bool sendTransform(const std::vector<Transform>& transforms) = 0;
 
-	virtual void addTransformListener(TransformListener::Ptr& listener) = 0;
-	virtual void removeTransformListener(TransformListener::Ptr& listener) = 0;
+	virtual void addTransformListener(const TransformListener::Ptr& listener) = 0;
+	virtual void removeTransformListener(const TransformListener::Ptr& listener) = 0;
 };
 
 } /* namespace rct */

@@ -8,14 +8,18 @@
 #pragma once
 
 #include <rct/Transform.h>
+#include <rct/impl/TransformListener.h>
+#include <rsc/runtime/Printable.h>
 #include <Eigen/Geometry>
 #include <string>
+#include <boost/noncopyable.hpp>
 #include <boost/integer.hpp>
 #include <boost/thread.hpp>
 
 namespace rct {
 
-class TransformerCore {
+class TransformerCore: public TransformListener, public virtual rsc::runtime::Printable,
+		public boost::noncopyable {
 public:
 	typedef boost::shared_ptr<TransformerCore> Ptr;
 	TransformerCore();

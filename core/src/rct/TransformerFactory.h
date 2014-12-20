@@ -8,6 +8,8 @@
 #pragma once
 
 #include "impl/TransformerCore.h"
+#include "Transformer.h"
+#include "TransformerConfig.h"
 #include <rsc/patterns/Singleton.h>
 #include <exception>
 
@@ -34,7 +36,7 @@ class TransformerFactory: private rsc::patterns::Singleton<TransformerFactory> {
 public:
 	virtual ~TransformerFactory();
 
-	TransformerCore::Ptr createTransformer(const boost::posix_time::time_duration& cacheTime) const;
+	Transformer::Ptr createTransformer(const TransformerConfig& cacheTime = TransformerConfig()) const;
 
 	friend class rsc::patterns::Singleton<TransformerFactory>;
 private:

@@ -17,7 +17,7 @@ using namespace rsb;
 namespace rct {
 
 TransformCommRsb::TransformCommRsb(
-		const boost::posix_time::time_duration& cacheTime, TransformListener::Ptr& l) {
+		const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& l) {
 
 	addTransformListener(l);
 
@@ -54,13 +54,13 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms) {
 	return true;
 }
 
-void TransformCommRsb::addTransformListener(TransformListener::Ptr& l) {
+void TransformCommRsb::addTransformListener(const TransformListener::Ptr& l) {
 	boost::mutex::scoped_lock(mutex);
 	listeners.push_back(l);
 }
 
 void TransformCommRsb::removeTransformListener(
-		TransformListener::Ptr& l) {
+		const TransformListener::Ptr& l) {
 	boost::mutex::scoped_lock(mutex);
 	vector<TransformListener::Ptr>::iterator it = find(listeners.begin(), listeners.end(), l);
 	if (it != listeners.end()) {

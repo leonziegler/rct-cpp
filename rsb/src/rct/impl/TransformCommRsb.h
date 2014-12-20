@@ -20,7 +20,7 @@ namespace rct {
 class TransformCommRsb: public TransformCommunicator {
 public:
 	typedef boost::shared_ptr<TransformCommRsb> Ptr;
-	TransformCommRsb(const boost::posix_time::time_duration& cacheTime, TransformListener::Ptr& listener);
+	TransformCommRsb(const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener);
 	virtual ~TransformCommRsb();
 
 	/** \brief Add transform information to the rct data structure
@@ -32,11 +32,13 @@ public:
 	virtual bool sendTransform(const Transform& transform);
 	virtual bool sendTransform(const std::vector<Transform>& transforms);
 
-	virtual void addTransformListener(TransformListener::Ptr& listener);
-	virtual void removeTransformListener(TransformListener::Ptr& listener);
+	virtual void addTransformListener(const TransformListener::Ptr& listener);
+	virtual void removeTransformListener(const TransformListener::Ptr& listener);
 
 	static void convertTransformToPb(const Transform& transform, boost::shared_ptr<FrameTransform> &t);
 	static void convertPbToTransform(const boost::shared_ptr<FrameTransform> &t, Transform& transform);
+
+	void printContents(std::ostream& stream) const;
 
 private:
 	rsb::ListenerPtr listener;

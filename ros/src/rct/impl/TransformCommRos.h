@@ -33,6 +33,8 @@ public:
 
 	virtual void addTransformListener(TransformListener::Ptr& listener);
 	virtual void removeTransformListener(TransformListener::Ptr& listener);
+
+	void printContents(std::ostream& stream) const;
 private:
 	tf2_ros::Buffer tfBuffer;
 	tf2_ros::TransformListener* tfListener;
