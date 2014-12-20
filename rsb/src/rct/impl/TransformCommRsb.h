@@ -23,6 +23,9 @@ public:
 	TransformCommRsb(const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener);
 	virtual ~TransformCommRsb();
 
+	virtual void init(const TransformerConfig &conf);
+	virtual void requestSync();
+
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store
 	 * \param authority The source of the information for this transform
@@ -41,11 +44,16 @@ public:
 	void printContents(std::ostream& stream) const;
 
 private:
-	rsb::ListenerPtr listener;
-	rsb::Informer<FrameTransform>::Ptr informer;
+	rsb::ListenerPtr rsbListenerTransform;
+	rsb::Informer<FrameTransform>::Ptr rsbInformerTransform;
+	rsb::ListenerPtr rsbListenerTrigger;
+	rsb::Informer<void>::Ptr rsbInformerTrigger;
 	std::vector<TransformListener::Ptr> listeners;
 	boost::mutex mutex;
+	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCache;
 
 	void frameTransformCallback(const boost::shared_ptr<FrameTransform> &t);
+	void triggerCallback(const boost::shared_ptr<void> &t);
+	void publishCache();
 };
 }  // namespace rct

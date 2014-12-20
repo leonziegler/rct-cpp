@@ -55,6 +55,7 @@ Transformer::Ptr TransformerFactory::createTransformer(const TransformerConfig& 
 		comms.push_back(TransformCommRos::Ptr(new TransformCommRos(config.getCacheTime(), core)));
 	}
 #endif
+
 #ifndef RCT_HAVE_RSB
 #ifndef RCT_HAVE_ROS
 	throw TransformerFactoryException("No known communicator implementation available!");
@@ -65,6 +66,7 @@ Transformer::Ptr TransformerFactory::createTransformer(const TransformerConfig& 
 		throw TransformerFactoryException(string("Can not generate communicator " + TransformerConfig::typeToString(config.getCommType())));
 	}
 
+	comms[0]->init(config);
 	Transformer::Ptr transformer(new Transformer(core, comms[0], config));
 	return transformer;
 }

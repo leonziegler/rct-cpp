@@ -9,6 +9,7 @@
 
 #include "../Transform.h"
 #include "TransformListener.h"
+#include "../TransformerConfig.h"
 #include <Eigen/Geometry>
 #include <string>
 #include <rsc/runtime/Printable.h>
@@ -25,6 +26,7 @@ public:
 	TransformCommunicator();
 	virtual ~TransformCommunicator();
 
+	virtual void init(const TransformerConfig &conf) = 0;
 
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store
