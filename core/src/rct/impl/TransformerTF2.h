@@ -27,16 +27,7 @@ public:
 	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
 	 * \return True unless an error occured
 	 */
-	bool setTransform(const Transform& transform,
-			const std::string &authority, bool is_static = false);
-
-	/** \brief Add transform information to the rct data structure
-	 * \param transform The transform to store
-	 * \param authority The source of the information for this transform
-	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
-	 * \return True unless an error occured
-	 */
-	bool sendTransform(const Transform& transform);
+	bool setTransform(const Transform& transform, bool is_static = false);
 
 	/** \brief Get the transform between two frames by frame ID.
 	 * \param target_frame The frame to which data should be transformed
@@ -95,7 +86,7 @@ public:
 
 	void printContents(std::ostream& stream) const;
 
-	virtual void newTransformAvailable(const rct::Transform&);
+	virtual void newTransformAvailable(const rct::Transform&, bool isStatic);
 
 private:
 	tf2::BufferCore tfBuffer;

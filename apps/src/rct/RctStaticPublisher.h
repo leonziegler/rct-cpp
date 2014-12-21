@@ -16,6 +16,13 @@ namespace rct {
 
 class RctStaticPublisher;
 
+class TransformWrapper: public Transform {
+public:
+	TransformWrapper(const Transform& t, bool isStatic): Transform(t), isStatic(isStatic) {
+	}
+	bool isStatic;
+};
+
 class Handler: public TransformListener {
 public:
 	typedef boost::shared_ptr<Handler> Ptr;
@@ -23,13 +30,13 @@ public:
 	}
 	virtual ~Handler() {
 	}
-	void newTransformAvailable(const Transform& transform);
+	void newTransformAvailable(const Transform& transform, bool isStatic);
 	bool hasTransforms();
-	Transform nextTransform();
+	TransformWrapper nextTransform();
 private:
 	RctStaticPublisher* parent;
 	boost::mutex mutex;
-	std::vector<Transform> transforms;
+	std::vector<TransformWrapper> transforms;
 };
 
 class RctStaticPublisher {

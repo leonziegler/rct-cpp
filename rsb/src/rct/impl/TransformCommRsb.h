@@ -12,6 +12,7 @@
 #include <rsb/Listener.h>
 #include <rsb/Informer.h>
 #include <boost/shared_ptr.hpp>
+#include <log4cxx/logger.h>
 
 #include "FrameTransform.pb.h"
 
@@ -33,8 +34,8 @@ public:
 	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
 	 * \return True unless an error occured
 	 */
-	virtual bool sendTransform(const Transform& transform);
-	virtual bool sendTransform(const std::vector<Transform>& transforms);
+	virtual bool sendTransform(const Transform& transform, bool isStatic);
+	virtual bool sendTransform(const std::vector<Transform>& transforms, bool isStatic);
 
 	virtual void addTransformListener(const TransformListener::Ptr& listener);
 	virtual void addTransformListener(const std::vector<TransformListener::Ptr>& listeners);
@@ -45,6 +46,8 @@ public:
 
 	void printContents(std::ostream& stream) const;
 
+	virtual std::string getAuthorityName() const;
+
 private:
 	rsb::ListenerPtr rsbListenerTransform;
 	rsb::Informer<FrameTransform>::Ptr rsbInformerTransform;
@@ -53,9 +56,12 @@ private:
 	std::vector<TransformListener::Ptr> listeners;
 	boost::mutex mutex;
 	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCache;
+	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCacheStatic;
 
-	void frameTransformCallback(const boost::shared_ptr<FrameTransform> &t);
-	void triggerCallback(const boost::shared_ptr<void> &t);
+	void frameTransformCallback(rsb::EventPtr t);
+	void triggerCallback(rsb::EventPtr t);
 	void publishCache();
+
+	static log4cxx::LoggerPtr logger;
 };
 }  // namespace rct

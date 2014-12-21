@@ -53,13 +53,12 @@ void TransformerTF2::clear() {
 	tfBuffer.clear();
 }
 
-bool TransformerTF2::setTransform(const Transform& transform_in,
-		const std::string& authority, bool is_static) {
+bool TransformerTF2::setTransform(const Transform& transform_in, bool is_static) {
 
 	geometry_msgs::TransformStamped t;
 	convertTransformToTf(transform_in, t);
 
-	return tfBuffer.setTransform(t, authority, is_static);
+	return tfBuffer.setTransform(t, transform_in.getAuthority(), is_static);
 }
 
 Transform TransformerTF2::lookupTransform(const std::string& target_frame,
@@ -94,9 +93,8 @@ bool TransformerTF2::canTransform(const std::string& target_frame,
 	return tfBuffer.canTransform(target_frame, ros::Time().fromBoost(target_time), source_frame, ros::Time().fromBoost(source_time), fixed_frame, error_msg);
 }
 
-void TransformerTF2::newTransformAvailable(const rct::Transform& t) {
-	// TODO authority?
-	setTransform(t, "");
+void TransformerTF2::newTransformAvailable(const rct::Transform& t, bool isStatic) {
+	setTransform(t, isStatic);
 }
 
 void TransformerTF2::printContents(std::ostream& stream) const {

@@ -9,10 +9,11 @@
 
 #include <Eigen/Geometry>
 #include <boost/date_time.hpp>
+#include <rsc/runtime/Printable.h>
 
 namespace rct {
 
-class Transform {
+class Transform: public rsc::runtime::Printable {
 public:
 	Transform() {
 	}
@@ -48,6 +49,10 @@ public:
 		this->time = time;
 	}
 
+	void setAuthority(const std::string &authority) {
+		this->authority = authority;
+	}
+
 	const Eigen::Affine3d& getTransform() const {
 		return transform;
 	}
@@ -69,10 +74,26 @@ public:
 		return transform.rotation().matrix();
 	}
 
+	const std::string getAuthority() const {
+		return authority;
+	}
+
+	virtual std::string getClassName() const {
+		return "Transform";
+	}
+	virtual void printContents(std::ostream& stream) const {
+		stream << "authority = " << authority;
+		stream << ", frameParent = " << frameParent;
+		stream << ", frameChild = " << frameChild;
+		stream << ", time = " << time;
+		stream << ", transform = " << transform.matrix();
+	}
+
 private:
 	Eigen::Affine3d transform;
 	std::string frameParent;
 	std::string frameChild;
 	boost::posix_time::ptime time;
+	std::string authority;
 };
 }

@@ -20,7 +20,7 @@ public:
 	virtual ~TransformListener() {
 	}
 
-	virtual void newTransformAvailable(const Transform& transform) = 0;
+	virtual void newTransformAvailable(const Transform& transform, bool isStatic) = 0;
 
 };
 

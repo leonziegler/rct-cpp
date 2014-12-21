@@ -7,6 +7,8 @@
 
 #include "Transformer.h"
 
+using namespace std;
+
 namespace rct {
 
 Transformer::Transformer(const TransformerCore::Ptr &core,
@@ -31,12 +33,16 @@ TransformerConfig Transformer::getConfig() const {
 	return config;
 }
 
-bool Transformer::sendTransform(const Transform& transform) {
-	return comm->sendTransform(transform);
+string Transformer::getAuthorityName() const {
+	return comm->getAuthorityName();
 }
 
-bool Transformer::sendTransform(const std::vector<Transform>& transforms) {
-	return comm->sendTransform(transforms);
+bool Transformer::sendTransform(const Transform& transform, bool isStatic) {
+	return comm->sendTransform(transform, isStatic);
+}
+
+bool Transformer::sendTransform(const std::vector<Transform>& transforms, bool isStatic) {
+	return comm->sendTransform(transforms, isStatic);
 }
 
 Transform Transformer::lookupTransform(const std::string& target_frame,

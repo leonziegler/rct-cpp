@@ -10,12 +10,17 @@
 #include <rsb/converter/Repository.h>
 #include <rsb/Factory.h>
 #include <rsb/Handler.h>
+#include <rsb/Event.h>
+#include <rsb/MetaData.h>
+#include <log4cxx/log4cxx.h>
 
 using namespace std;
 using namespace rsb;
 using namespace boost;
 
 namespace rct {
+
+log4cxx::LoggerPtr TransformCommRsb::logger = log4cxx::Logger::getLogger("rcs.rsb.TransformComRsb");
 
 TransformCommRsb::TransformCommRsb(
 		const boost::posix_time::time_duration& cacheTime,
@@ -42,19 +47,15 @@ void TransformCommRsb::init(const TransformerConfig &conf) {
 	Factory &factory = rsb::getFactory();
 
 	rsbListenerTransform = factory.createListener("/rct/transform");
-	rsbInformerTransform = factory.createInformer<FrameTransform>("/rct/transform");
 	rsbListenerTrigger = factory.createListener("/rct/trigger");
+	rsbInformerTransform = factory.createInformer<FrameTransform>("/rct/transform");
 	rsbInformerTrigger = factory.createInformer<void>("/rct/trigger");
 
-	DataFunctionHandler<FrameTransform>::DataFunction f0(
-			bind(&TransformCommRsb::frameTransformCallback, this, _1));
-	rsbListenerTransform->addHandler(
-			HandlerPtr(new DataFunctionHandler<FrameTransform>(f0)));
+	EventFunction f0(bind(&TransformCommRsb::frameTransformCallback, this, _1));
+	rsbListenerTransform->addHandler(HandlerPtr(new EventFunctionHandler(f0)));
 
-	DataFunctionHandler<void>::DataFunction f1(
-			bind(&TransformCommRsb::triggerCallback, this, _1));
-	rsbListenerTrigger->addHandler(
-			HandlerPtr(new DataFunctionHandler<void>(f1)));
+	EventFunction f1(bind(&TransformCommRsb::triggerCallback, this, _1));
+	rsbListenerTrigger->addHandler(HandlerPtr(new EventFunctionHandler(f1)));
 
 	requestSync();
 
@@ -65,11 +66,13 @@ void TransformCommRsb::requestSync() {
 		throw std::runtime_error("communicator was not initialized!");
 	}
 
+	LOG4CXX_DEBUG(logger, "Sending sync request trigger from id " << rsbInformerTrigger->getId().getIdAsString());
+
 	// trigger other instances to send transforms
 	rsbInformerTrigger->publish(shared_ptr<void>());
 }
 
-bool TransformCommRsb::sendTransform(const Transform& transform) {
+bool TransformCommRsb::sendTransform(const Transform& transform, bool isStatic) {
 	if (!rsbInformerTransform) {
 		throw std::runtime_error("communicator was not initialized!");
 	}
@@ -78,24 +81,44 @@ bool TransformCommRsb::sendTransform(const Transform& transform) {
 	convertTransformToPb(transform, t);
 	string cacheKey = transform.getFrameParent() + transform.getFrameChild();
 
+	LOG4CXX_DEBUG(logger, "Publishing transform from " << rsbInformerTransform->getId().getIdAsString());
+
 	boost::mutex::scoped_lock(mutex);
-	sendCache[cacheKey] = t;
-	rsbInformerTransform->publish(t);
+	EventPtr event(new Event());
+	event->setData(t);
+	if (isStatic) {
+		sendCacheStatic[cacheKey] = t;
+		event->setScope(Scope("/rct/transform/static"));
+	} else {
+		sendCache[cacheKey] = t;
+		event->setScope(Scope("/rct/transform/nonstatic"));
+	}
+	rsbInformerTransform->publish(event);
 	return true;
 }
 
-bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms) {
+bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, bool isStatic) {
 	std::vector<Transform>::const_iterator it;
 	for (it = transforms.begin(); it != transforms.end(); ++it) {
-		sendTransform(*it);
+		sendTransform(*it, isStatic);
 	}
 	return true;
 }
 
 void TransformCommRsb::publishCache() {
+	LOG4CXX_DEBUG(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
 	map<string, shared_ptr<FrameTransform> >::iterator it;
 	for (it = sendCache.begin(); it != sendCache.end(); it++) {
-		rsbInformerTransform->publish(it->second);
+		EventPtr event(new Event());
+		event->setData(it->second);
+		event->setScope(Scope("/rct/transform/nonstatic"));
+		rsbInformerTransform->publish(event);
+	}
+	for (it = sendCacheStatic.begin(); it != sendCacheStatic.end(); it++) {
+		EventPtr event(new Event());
+		event->setData(it->second);
+		event->setScope(Scope("/rct/transform/static"));
+		rsbInformerTransform->publish(event);
 	}
 }
 
@@ -119,19 +142,34 @@ void TransformCommRsb::removeTransformListener(
 	}
 }
 
-void TransformCommRsb::frameTransformCallback(
-		const boost::shared_ptr<FrameTransform> &t) {
-	vector<TransformListener::Ptr>::iterator it;
+void TransformCommRsb::frameTransformCallback(EventPtr event) {
+	boost::shared_ptr<FrameTransform> t = boost::static_pointer_cast<FrameTransform>(event->getData());
+	string authority = event->getMetaData().getSenderId().getIdAsString();
+	vector<string> scopeComponents = event->getScope().getComponents();
+	vector<string>::iterator it = find(scopeComponents.begin(), scopeComponents.end(), "nonstatic");
+	bool isStatic = it == scopeComponents.end();
+
+	Transform transform;
+	convertPbToTransform(t, transform);
+	transform.setAuthority(authority);
+	LOG4CXX_DEBUG(logger, "Received transform from " << authority);
+	LOG4CXX_TRACE(logger, "Received transform: " << transform);
+
 	boost::mutex::scoped_lock(mutex);
-	for (it = listeners.begin(); it != listeners.end(); ++it) {
-		TransformListener::Ptr l = *it;
-		Transform transform;
-		convertPbToTransform(t, transform);
-		l->newTransformAvailable(transform);
+	vector<TransformListener::Ptr>::iterator it0;
+	for (it0 = listeners.begin(); it0 != listeners.end(); ++it0) {
+		TransformListener::Ptr l = *it0;
+		l->newTransformAvailable(transform, isStatic);
 	}
 }
 
-void TransformCommRsb::triggerCallback(const shared_ptr<void> &t) {
+void TransformCommRsb::triggerCallback(EventPtr e) {
+
+	if (e->getMetaData().getSenderId() == rsbInformerTrigger->getId()) {
+		LOG4CXX_DEBUG(logger, "Got trigger from myself. Ignore. (id " << e->getMetaData().getSenderId().getIdAsString() << ")");
+		return;
+	}
+
 	// publish send cache as thread
 	boost::thread workerThread(&TransformCommRsb::publishCache, this);
 }
@@ -187,5 +225,9 @@ void TransformCommRsb::printContents(std::ostream& stream) const {
 	stream << "communication = rsb";
 	stream << ", #listeners = " << listeners.size();
 	stream << ", #cache = " << sendCache.size();
+}
+
+string TransformCommRsb::getAuthorityName() const {
+	return rsbInformerTransform->getId().getIdAsString();
 }
 }  // namespace rct

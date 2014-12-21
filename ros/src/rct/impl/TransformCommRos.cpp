@@ -42,15 +42,19 @@ void TransformCommRos::init(const TransformerConfig &conf) {
 	tfListener = new tf2_ros::TransformListener(tfBuffer);
 }
 
-bool TransformCommRos::sendTransform(const Transform& transform) {
+bool TransformCommRos::sendTransform(const Transform& transform, bool isStatic) {
 
 	geometry_msgs::TransformStamped t;
 	TransformerTF2::convertTransformToTf(transform, t);
-	tfBroadcaster.sendTransform(t);
+	if (isStatic) {
+		tfBroadcasterStatic.sendTransform(t);
+	} else {
+		tfBroadcaster.sendTransform(t);
+	}
 	return true;
 }
 
-bool TransformCommRos::sendTransform(const vector<Transform>& transform) {
+bool TransformCommRos::sendTransform(const vector<Transform>& transform, bool isStatic) {
 	vector<geometry_msgs::TransformStamped> ts;
 	vector<Transform>::const_iterator it;
 	for (it = transform.begin(); it != transform.end(); ++it) {
@@ -58,7 +62,11 @@ bool TransformCommRos::sendTransform(const vector<Transform>& transform) {
 		TransformerTF2::convertTransformToTf(*it, t);
 		ts.push_back(t);
 	}
-	tfBroadcaster.sendTransform(ts);
+	if (isStatic) {
+		tfBroadcasterStatic.sendTransform(ts);
+	} else {
+		tfBroadcaster.sendTransform(ts);
+	}
 	return true;
 }
 
@@ -88,9 +96,15 @@ void TransformCommRos::transformCallback(tf2::TransformableRequestHandle handle,
 			TransformListener::Ptr l = *it;
 			Transform t;
 			TransformerTF2::convertTfToTransform(rosTransform, t);
-			l->newTransformAvailable(t);
+			// TODO is it static ???
+			l->newTransformAvailable(t, false);
 		}
 	}
+}
+
+std::string TransformCommRos::getAuthorityName() const {
+	// TODO authority??? publisher name...
+	return "";
 }
 
 } /* namespace rct */

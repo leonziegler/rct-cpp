@@ -153,14 +153,20 @@ void RctStaticPublisher::run() {
 		LOG4CXX_DEBUG(logger, "notified");
 		if (bridge) {
 			while(rsbHandler->hasTransforms()) {
-				Transform t = rsbHandler->nextTransform();
-				commRos->sendTransform(t);
-				// TODO inf loop
+				TransformWrapper t = rsbHandler->nextTransform();
+				if (t.getAuthority() != transformerRsb->getAuthorityName()) {
+					commRos->sendTransform(t, t.isStatic);
+				} else {
+					LOG4CXX_TRACE(logger, "skip bridging of transform from rsb to ros because own authority: " << t.getAuthority());
+				}
 			}
 			while(rosHandler->hasTransforms()) {
-				Transform t = rosHandler->nextTransform();
-				transformerRsb->sendTransform(t);
-				// TODO inf loop
+				TransformWrapper t = rosHandler->nextTransform();
+				if (t.getAuthority() != commRos->getAuthorityName()) {
+					transformerRsb->sendTransform(t, t.isStatic);
+				} else {
+					LOG4CXX_TRACE(logger, "skip bridging of transform from ros to rsb because own authority: " << t.getAuthority());
+				}
 			}
 		}
 	}
@@ -173,21 +179,23 @@ void RctStaticPublisher::interrupt() {
 RctStaticPublisher::~RctStaticPublisher() {
 }
 
-void Handler::newTransformAvailable(const Transform& transform) {
+void Handler::newTransformAvailable(const Transform& transform, bool isStatic) {
 	boost::mutex::scoped_lock lock(mutex);
-	transforms.push_back(transform);
+	TransformWrapper w(transform, isStatic);
+	transforms.push_back(w);
 	parent->notify();
 }
 bool Handler::hasTransforms() {
 	boost::mutex::scoped_lock lock(mutex);
 	return !transforms.empty();
 }
-Transform Handler::nextTransform() {
+
+TransformWrapper Handler::nextTransform() {
 	if (!hasTransforms()) {
 		throw std::range_error("no transforms available");
 	}
 	boost::mutex::scoped_lock lock(mutex);
-	Transform ret = *transforms.begin();
+	TransformWrapper ret = *transforms.begin();
 	transforms.erase(transforms.begin());
 	return ret;
 }

@@ -31,7 +31,7 @@ public:
 	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
 	 * \return True unless an error occured
 	 */
-	virtual bool sendTransform(const Transform& transform);
+	virtual bool sendTransform(const Transform& transform, bool isStatic);
 
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store
@@ -39,7 +39,7 @@ public:
 	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
 	 * \return True unless an error occured
 	 */
-	virtual bool sendTransform(const std::vector<Transform>& transforms);
+	virtual bool sendTransform(const std::vector<Transform>& transforms, bool isStatic);
 
 	/** \brief Get the transform between two frames by frame ID.
 	 * \param target_frame The frame to which data should be transformed
@@ -100,6 +100,7 @@ public:
 
 	void printContents(std::ostream& stream) const;
 	TransformerConfig getConfig() const;
+	std::string getAuthorityName() const;
 private:
 
 	TransformCommunicator::Ptr comm;
