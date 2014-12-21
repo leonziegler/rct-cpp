@@ -44,7 +44,7 @@ vector<string> readDir(const string &dir) {
 }
 
 void signalHandler(int signum) {
-	cout << "Interrupt signal (" << signum << ") received.\n";
+	cout << "Interrupt signal (" << signum << ") received." << endl;
 	publisher->interrupt();
 }
 
@@ -70,7 +70,8 @@ int main(int argc, char **argv) {
 	}
 
 	if (!vm.count("dir") && !vm.count("config")) {
-		cerr << "\nERROR: either --dir or --config must be set!" << endl << endl;
+		cerr << "\nERROR: either --dir or --config must be set!" << endl
+				<< endl;
 		cout << desc << endl;
 	}
 
@@ -109,16 +110,36 @@ int main(int argc, char **argv) {
 
 namespace rct {
 
-RctStaticPublisher::RctStaticPublisher(const vector<string> &configFiles,
-		bool bridge) {
+log4cxx::LoggerPtr RctStaticPublisher::logger = log4cxx::Logger::getLogger("RctStaticPublisher");
 
+RctStaticPublisher::RctStaticPublisher(const vector<string> &configFiles,
+		bool bridge) :
+		bridge(bridge), interrupted(false) {
+
+	TransformerConfig configRsb, configRos;
+	configRsb.setCommType(TransformerConfig::RSB);
+	transformerRsb = getTransformerFactory().createTransformer(configRsb);
+
+	if (bridge) {
+		configRos.setCommType(TransformerConfig::ROS);
+		transformerRos = getTransformerFactory().createTransformer(configRos);
+	}
 }
 
 void RctStaticPublisher::run() {
 
+	// run until interrupted
+	while (!interrupted) {
+		boost::mutex::scoped_lock lock(mutex);
+		// wait for notification
+		cond.wait(lock);
+		LOG4CXX_DEBUG(logger, "notified");
+	}
+	LOG4CXX_DEBUG(logger, "interrupted");
 }
 void RctStaticPublisher::interrupt() {
-
+	interrupted = true;
+	cond.notify_all();
 }
 RctStaticPublisher::~RctStaticPublisher() {
 }

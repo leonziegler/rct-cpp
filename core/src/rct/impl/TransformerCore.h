@@ -28,7 +28,7 @@ public:
 	}
 
 	/** \brief Clear all data */
-	virtual void clear();
+	virtual void clear() = 0;
 
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store

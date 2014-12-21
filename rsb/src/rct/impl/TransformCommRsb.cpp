@@ -182,4 +182,10 @@ void TransformCommRsb::convertPbToTransform(
 	transform.setTransform(a);
 
 }
+
+void TransformCommRsb::printContents(std::ostream& stream) const {
+	stream << "communication = rsb";
+	stream << ", #listeners = " << listeners.size();
+	stream << ", #cache = " << sendCache.size();
+}
 }  // namespace rct

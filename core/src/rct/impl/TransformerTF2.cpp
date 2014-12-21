@@ -99,4 +99,8 @@ void TransformerTF2::newTransformAvailable(const rct::Transform& t) {
 	setTransform(t, "");
 }
 
+void TransformerTF2::printContents(std::ostream& stream) const {
+	stream << "backend = tf2::BufferCore";
+}
+
 } /* namespace rct */
