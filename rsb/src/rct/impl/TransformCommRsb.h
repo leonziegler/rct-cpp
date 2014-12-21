@@ -21,6 +21,7 @@ class TransformCommRsb: public TransformCommunicator {
 public:
 	typedef boost::shared_ptr<TransformCommRsb> Ptr;
 	TransformCommRsb(const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener);
+	TransformCommRsb(const boost::posix_time::time_duration& cacheTime, const std::vector<TransformListener::Ptr>& listeners);
 	virtual ~TransformCommRsb();
 
 	virtual void init(const TransformerConfig &conf);
@@ -36,6 +37,7 @@ public:
 	virtual bool sendTransform(const std::vector<Transform>& transforms);
 
 	virtual void addTransformListener(const TransformListener::Ptr& listener);
+	virtual void addTransformListener(const std::vector<TransformListener::Ptr>& listeners);
 	virtual void removeTransformListener(const TransformListener::Ptr& listener);
 
 	static void convertTransformToPb(const Transform& transform, boost::shared_ptr<FrameTransform> &t);

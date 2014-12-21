@@ -23,8 +23,10 @@ class TransformCommunicator: public virtual rsc::runtime::Printable,
 		public boost::noncopyable {
 public:
 	typedef boost::shared_ptr<TransformCommunicator> Ptr;
-	TransformCommunicator();
-	virtual ~TransformCommunicator();
+	TransformCommunicator() {
+	}
+	virtual ~TransformCommunicator() {
+	}
 
 	virtual void init(const TransformerConfig &conf) = 0;
 
@@ -45,6 +47,7 @@ public:
 	virtual bool sendTransform(const std::vector<Transform>& transforms) = 0;
 
 	virtual void addTransformListener(const TransformListener::Ptr& listener) = 0;
+	virtual void addTransformListener(const std::vector<TransformListener::Ptr>& listeners) = 0;
 	virtual void removeTransformListener(const TransformListener::Ptr& listener) = 0;
 };
 

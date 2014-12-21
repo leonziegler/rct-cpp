@@ -17,25 +17,29 @@ namespace rct {
 
 TransformCommRos::TransformCommRos(
 		const boost::posix_time::time_duration& cacheTime) {
-
-	tf2::BufferCore::TransformableCallback cb(boost::bind(&TransformCommRos::transformCallback, this, _1, _2, _3, _4, _5));
-	tf2::TransformableCallbackHandle handle = tfBuffer.addTransformableCallback(cb);
-
-	tfListener = new tf2_ros::TransformListener(tfBuffer);
 }
 
 TransformCommRos::TransformCommRos(
-		const boost::posix_time::time_duration& cacheTime, TransformListener::Ptr listener) {
+		const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener) {
 
 	addTransformListener(listener);
+}
 
+TransformCommRos::TransformCommRos(
+		const boost::posix_time::time_duration& cacheTime,
+		const vector<TransformListener::Ptr>& l) {
+
+	addTransformListener(l);
+}
+
+TransformCommRos::~TransformCommRos() {
+}
+
+void TransformCommRos::init(const TransformerConfig &conf) {
 	tf2::BufferCore::TransformableCallback cb(boost::bind(&TransformCommRos::transformCallback, this, _1, _2, _3, _4, _5));
 	tf2::TransformableCallbackHandle handle = tfBuffer.addTransformableCallback(cb);
 
 	tfListener = new tf2_ros::TransformListener(tfBuffer);
-}
-
-TransformCommRos::~TransformCommRos() {
 }
 
 bool TransformCommRos::sendTransform(const Transform& transform) {
@@ -58,11 +62,16 @@ bool TransformCommRos::sendTransform(const vector<Transform>& transform) {
 	return true;
 }
 
-void TransformCommRos::addTransformListener(TransformListener::Ptr& listener) {
+void TransformCommRos::addTransformListener(const TransformListener::Ptr& listener) {
 	boost::mutex::scoped_lock(mutex);
 	listeners.push_back(listener);
 }
-void TransformCommRos::removeTransformListener(TransformListener::Ptr& listener) {
+
+void TransformCommRos::addTransformListener(const vector<TransformListener::Ptr>& l) {
+	boost::mutex::scoped_lock(mutex);
+	listeners.insert(listeners.end(), l.begin(), l.end());
+}
+void TransformCommRos::removeTransformListener(const TransformListener::Ptr& listener) {
 	boost::mutex::scoped_lock(mutex);
 	vector<TransformListener::Ptr>::iterator it = find(listeners.begin(), listeners.end(), listener);
 	if (it != listeners.end()) {

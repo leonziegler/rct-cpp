@@ -22,7 +22,13 @@ TransformCommRsb::TransformCommRsb(
 		const TransformListener::Ptr& l) {
 
 	addTransformListener(l);
+}
 
+TransformCommRsb::TransformCommRsb(
+		const boost::posix_time::time_duration& cacheTime,
+		const vector<TransformListener::Ptr>& l) {
+
+	addTransformListener(l);
 }
 
 TransformCommRsb::~TransformCommRsb() {
@@ -96,6 +102,11 @@ void TransformCommRsb::publishCache() {
 void TransformCommRsb::addTransformListener(const TransformListener::Ptr& l) {
 	boost::mutex::scoped_lock(mutex);
 	listeners.push_back(l);
+}
+
+void TransformCommRsb::addTransformListener(const vector<TransformListener::Ptr>& l) {
+	boost::mutex::scoped_lock(mutex);
+	listeners.insert(listeners.end(), l.begin(), l.end());
 }
 
 void TransformCommRsb::removeTransformListener(

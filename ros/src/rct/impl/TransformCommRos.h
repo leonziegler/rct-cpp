@@ -19,8 +19,11 @@ class TransformCommRos: public TransformCommunicator {
 public:
 	typedef boost::shared_ptr<TransformCommRos> Ptr;
 	TransformCommRos(const boost::posix_time::time_duration& cacheTime);
-	TransformCommRos(const boost::posix_time::time_duration& cacheTime, TransformListener::Ptr listener);
+	TransformCommRos(const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener);
+	TransformCommRos(const boost::posix_time::time_duration& cacheTime, const std::vector<TransformListener::Ptr>& listener);
 	virtual ~TransformCommRos();
+
+	virtual void init(const TransformerConfig &conf);
 
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store
@@ -31,8 +34,9 @@ public:
 	virtual bool sendTransform(const Transform& transform);
 	virtual bool sendTransform(const std::vector<Transform>& transforms);
 
-	virtual void addTransformListener(TransformListener::Ptr& listener);
-	virtual void removeTransformListener(TransformListener::Ptr& listener);
+	virtual void addTransformListener(const TransformListener::Ptr& listener);
+	virtual void addTransformListener(const std::vector<TransformListener::Ptr>& listeners);
+	virtual void removeTransformListener(const TransformListener::Ptr& listener);
 
 	void printContents(std::ostream& stream) const;
 private:

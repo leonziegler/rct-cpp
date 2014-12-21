@@ -36,23 +36,39 @@ TransformerFactory& TransformerFactory::getInstanceBase() {
 }
 
 Transformer::Ptr TransformerFactory::createTransformer(const TransformerConfig& config) const {
+	vector<TransformListener::Ptr> allListeners;
+	return createTransformer(allListeners, config);
+}
+
+Transformer::Ptr TransformerFactory::createTransformer(const TransformListener::Ptr& listener, const TransformerConfig& config) const {
+	vector<TransformListener::Ptr> allListeners;
+	allListeners.push_back(listener);
+	return createTransformer(allListeners, config);
+}
+
+Transformer::Ptr TransformerFactory::createTransformer(const vector<TransformListener::Ptr>& listeners, const TransformerConfig& config) const {
+	vector<TransformListener::Ptr> allListeners;
+	allListeners.insert(allListeners.end(), listeners.begin(), listeners.end());
 	TransformerCore::Ptr core;
+
 #ifdef RCT_HAVE_TF2
 	core = TransformerTF2::Ptr(new TransformerTF2(config.getCacheTime()));
 #else
 	throw TransformerFactoryException("No known logic implementation available!");
 #endif
 
+	allListeners.push_back(core);
+
 	// order is priority
 	vector<TransformCommunicator::Ptr> comms;
 #ifdef RCT_HAVE_RSB
 	if (config.getCommType() == TransformerConfig::AUTO || config.getCommType() == TransformerConfig::RSB) {
-		comms.push_back(TransformCommRsb::Ptr(new TransformCommRsb(config.getCacheTime(), core)));
+		comms.push_back(TransformCommRsb::Ptr(new TransformCommRsb(config.getCacheTime(), allListeners)));
 	}
 #endif
 #ifdef RCT_HAVE_ROS
 	if (config.getCommType() == TransformerConfig::AUTO || config.getCommType() == TransformerConfig::ROS) {
-		comms.push_back(TransformCommRos::Ptr(new TransformCommRos(config.getCacheTime(), core)));
+		comms.push_back(TransformCommRos::Ptr(new TransformCommRos(config.getCacheTime(), allListeners)));
 	}
 #endif
 
@@ -70,5 +86,4 @@ Transformer::Ptr TransformerFactory::createTransformer(const TransformerConfig& 
 	Transformer::Ptr transformer(new Transformer(core, comms[0], config));
 	return transformer;
 }
-
 }

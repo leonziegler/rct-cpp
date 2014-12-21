@@ -22,8 +22,10 @@ class TransformerCore: public TransformListener, public virtual rsc::runtime::Pr
 		public boost::noncopyable {
 public:
 	typedef boost::shared_ptr<TransformerCore> Ptr;
-	TransformerCore();
-	virtual ~TransformerCore();
+	TransformerCore() {
+	}
+	virtual ~TransformerCore() {
+	}
 
 	/** \brief Clear all data */
 	virtual void clear();
