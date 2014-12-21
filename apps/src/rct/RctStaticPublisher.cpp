@@ -6,6 +6,7 @@
  */
 
 #include "RctStaticPublisher.h"
+#include <rct/rctConfig.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
@@ -116,14 +117,30 @@ RctStaticPublisher::RctStaticPublisher(const vector<string> &configFiles,
 		bool bridge) :
 		bridge(bridge), interrupted(false) {
 
-	TransformerConfig configRsb, configRos;
+	TransformerConfig configRsb;
 	configRsb.setCommType(TransformerConfig::RSB);
-	transformerRsb = getTransformerFactory().createTransformer(configRsb);
 
 	if (bridge) {
+#ifdef RCT_HAVE_ROS
+		rosHandler = Handler::Ptr(new Handler(this));
+		rsbHandler = Handler::Ptr(new Handler(this));
+
+		transformerRsb = getTransformerFactory().createTransformer(rsbHandler, configRsb);
+
+		TransformerConfig configRos;
 		configRos.setCommType(TransformerConfig::ROS);
-		transformerRos = getTransformerFactory().createTransformer(configRos);
+		commRos = TransformCommRos::Ptr(new TransformCommRos(configRos.getCacheTime(), rosHandler));
+#else
+		throw TransformerFactoryException("Can not activate bridge mode, because ROS implementation is not present!");
+#endif
+	} else {
+		transformerRsb = getTransformerFactory().createTransformer(configRsb);
 	}
+}
+
+void RctStaticPublisher::notify() {
+	boost::mutex::scoped_lock lock(mutex);
+	cond.notify_all();
 }
 
 void RctStaticPublisher::run() {
@@ -134,14 +151,45 @@ void RctStaticPublisher::run() {
 		// wait for notification
 		cond.wait(lock);
 		LOG4CXX_DEBUG(logger, "notified");
+		if (bridge) {
+			while(rsbHandler->hasTransforms()) {
+				Transform t = rsbHandler->nextTransform();
+				commRos->sendTransform(t);
+				// TODO inf loop
+			}
+			while(rosHandler->hasTransforms()) {
+				Transform t = rosHandler->nextTransform();
+				transformerRsb->sendTransform(t);
+				// TODO inf loop
+			}
+		}
 	}
 	LOG4CXX_DEBUG(logger, "interrupted");
 }
 void RctStaticPublisher::interrupt() {
 	interrupted = true;
-	cond.notify_all();
+	notify();
 }
 RctStaticPublisher::~RctStaticPublisher() {
+}
+
+void Handler::newTransformAvailable(const Transform& transform) {
+	boost::mutex::scoped_lock lock(mutex);
+	transforms.push_back(transform);
+	parent->notify();
+}
+bool Handler::hasTransforms() {
+	boost::mutex::scoped_lock lock(mutex);
+	return !transforms.empty();
+}
+Transform Handler::nextTransform() {
+	if (!hasTransforms()) {
+		throw std::range_error("no transforms available");
+	}
+	boost::mutex::scoped_lock lock(mutex);
+	Transform ret = *transforms.begin();
+	transforms.erase(transforms.begin());
+	return ret;
 }
 
 } /* namespace rct */

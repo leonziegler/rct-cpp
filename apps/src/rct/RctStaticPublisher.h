@@ -14,6 +14,24 @@
 
 namespace rct {
 
+class RctStaticPublisher;
+
+class Handler: public TransformListener {
+public:
+	typedef boost::shared_ptr<Handler> Ptr;
+	Handler(RctStaticPublisher* parent): parent(parent) {
+	}
+	virtual ~Handler() {
+	}
+	void newTransformAvailable(const Transform& transform);
+	bool hasTransforms();
+	Transform nextTransform();
+private:
+	RctStaticPublisher* parent;
+	boost::mutex mutex;
+	std::vector<Transform> transforms;
+};
+
 class RctStaticPublisher {
 public:
 	RctStaticPublisher(const std::vector<std::string> &configFiles, bool bridge);
@@ -21,10 +39,13 @@ public:
 
 	void run();
 	void interrupt();
+	void notify();
 
 private:
 	Transformer::Ptr transformerRsb;
-	Transformer::Ptr transformerRos;
+	TransformCommunicator::Ptr commRos;
+	Handler::Ptr rosHandler;
+	Handler::Ptr rsbHandler;
 	bool bridge;
 	bool interrupted;
 
