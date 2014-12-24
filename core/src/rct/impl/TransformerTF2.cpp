@@ -101,4 +101,32 @@ void TransformerTF2::printContents(std::ostream& stream) const {
 	stream << "backend = tf2::BufferCore";
 }
 
+std::vector<std::string> TransformerTF2::getFrameStrings() const {
+	std::vector<std::string> frames;
+	tfBuffer._getFrameStrings(frames);
+	return frames;
+}
+
+bool TransformerTF2::frameExists(const std::string& frame_id_str) const {
+	return tfBuffer._frameExists(frame_id_str);
+}
+
+std::string TransformerTF2::getParent(const std::string& frame_id, const boost::posix_time::ptime &time) const {
+	string p;
+	tfBuffer._getParent(frame_id, ros::Time().fromBoost(time), p);
+	return p;
+}
+
+std::string TransformerTF2::allFramesAsDot() const {
+	return tfBuffer._allFramesAsDot();
+}
+
+std::string TransformerTF2::allFramesAsYAML() const {
+	return tfBuffer.allFramesAsYAML();
+}
+
+std::string TransformerTF2::allFramesAsString() const {
+	return tfBuffer.allFramesAsString();
+}
+
 } /* namespace rct */

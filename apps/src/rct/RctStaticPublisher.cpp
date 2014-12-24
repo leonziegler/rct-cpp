@@ -9,7 +9,10 @@
 #include <rct/rctConfig.h>
 
 #include <boost/program_options.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <log4cxx/log4cxx.h>
 #include <log4cxx/logger.h>
 #include <log4cxx/basicconfigurator.h>
@@ -19,30 +22,12 @@
 #include <csignal>
 
 using namespace boost::program_options;
+using namespace boost::property_tree;
 using namespace boost::filesystem;
 using namespace std;
 using namespace log4cxx;
 
 rct::RctStaticPublisher *publisher;
-
-vector<string> readDir(const string &dir) {
-	vector<string> vec;
-	path someDir(dir);
-	directory_iterator end_iter;
-
-	if (exists(someDir) && is_directory(someDir)) {
-		for (directory_iterator dir_iter(someDir); dir_iter != end_iter;
-				++dir_iter) {
-			if (is_regular_file(dir_iter->status())) {
-				path f(*dir_iter);
-				stringstream ss;
-				ss << dir << "/" << f.filename();
-				vec.push_back(ss.str());
-			}
-		}
-	}
-	return vec;
-}
 
 void signalHandler(int signum) {
 	cout << "Interrupt signal (" << signum << ") received." << endl;
@@ -54,7 +39,6 @@ int main(int argc, char **argv) {
 	variables_map vm;
 
 	desc.add_options()("help,h", "produce help message") // help
-	("dir,d", value<string>(), "directory containing config files") // config dir
 	("config,c", value<string>(), "a single config file") // config file
 	("bridge", "rsb/ros bride mode") //bridge
 	("debug", "debug mode") //debug
@@ -90,32 +74,30 @@ int main(int argc, char **argv) {
 		Logger::getRootLogger()->setLevel(Level::getWarn());
 	}
 
-	vector<string> files;
-	if (vm.count("dir")) {
-		files = readDir(vm["dir"].as<string>());
+	try {
+
+		publisher = new rct::RctStaticPublisher(vm["config"].as<string>(), vm.count("bridge"));
+
+		// register signal SIGINT and signal handler
+		signal(SIGINT, signalHandler);
+
+		// block
+		publisher->run();
+
+	} catch (std::exception &e) {
+		cerr << "Error:\n  " << e.what() << "\n" << endl;
+		return 1;
 	}
-	if (vm.count("config")) {
-		files.push_back(vm["config"].as<string>());
-	}
-
-	publisher = new rct::RctStaticPublisher(files, vm.count("bridge"));
-
-	// register signal SIGINT and signal handler
-	signal(SIGINT, signalHandler);
-
-	// block
-	publisher->run();
 
 	return 0;
 }
 
 namespace rct {
 
-log4cxx::LoggerPtr RctStaticPublisher::logger = log4cxx::Logger::getLogger("RctStaticPublisher");
+log4cxx::LoggerPtr RctStaticPublisher::logger = log4cxx::Logger::getLogger("rct.RctStaticPublisher");
 
-RctStaticPublisher::RctStaticPublisher(const vector<string> &configFiles,
-		bool bridge) :
-		bridge(bridge), interrupted(false) {
+RctStaticPublisher::RctStaticPublisher(const string &configFile, bool bridge) :
+		configFile(configFile), bridge(bridge), interrupted(false) {
 
 	TransformerConfig configRsb;
 	configRsb.setCommType(TransformerConfig::RSB);
@@ -144,6 +126,10 @@ void RctStaticPublisher::notify() {
 }
 
 void RctStaticPublisher::run() {
+
+	LOG4CXX_DEBUG(logger, "reading config file: " << configFile)
+	vector<Transform> transforms = parseTransforms(configFile);
+	transformerRsb->sendTransform(transforms, true);
 
 	// run until interrupted
 	while (!interrupted) {
@@ -198,6 +184,88 @@ TransformWrapper Handler::nextTransform() {
 	TransformWrapper ret = *transforms.begin();
 	transforms.erase(transforms.begin());
 	return ret;
+}
+
+vector<Transform> RctStaticPublisher::parseTransforms(const string& file) const {
+	ptree pt;
+	ini_parser::read_ini(file, pt);
+
+	vector<Transform> transforms;
+	ptree::const_iterator itTrans;
+	for (itTrans = pt.begin(); itTrans != pt.end(); ++itTrans) {
+		if (!boost::algorithm::starts_with(itTrans->first, "transform")) {
+			continue;
+		}
+		string section = itTrans->first;
+		ptree ptTransform = itTrans->second;
+
+		string parent = ptTransform.get<string>("parent");
+		string child = ptTransform.get<string>("child");
+		boost::optional<double> tx = ptTransform.get_optional<double>(boost::property_tree::path("translation.x", '/'));
+		boost::optional<double> ty = ptTransform.get_optional<double>(boost::property_tree::path("translation.y", '/'));
+		boost::optional<double> tz = ptTransform.get_optional<double>(boost::property_tree::path("translation.z", '/'));
+		boost::optional<double> yaw =   ptTransform.get_optional<double>(boost::property_tree::path("rotation.yaw", '/'));
+		boost::optional<double> pitch = ptTransform.get_optional<double>(boost::property_tree::path("rotation.pitch", '/'));
+		boost::optional<double> roll =  ptTransform.get_optional<double>(boost::property_tree::path("rotation.roll", '/'));
+		boost::optional<double> qw = ptTransform.get_optional<double>(boost::property_tree::path("rotation.qw", '/'));
+		boost::optional<double> qx = ptTransform.get_optional<double>(boost::property_tree::path("rotation.qx", '/'));
+		boost::optional<double> qy = ptTransform.get_optional<double>(boost::property_tree::path("rotation.qy", '/'));
+		boost::optional<double> qz = ptTransform.get_optional<double>(boost::property_tree::path("rotation.qz", '/'));
+
+		if (!tx || !ty || !tz) {
+			stringstream ss;
+			ss << "Error parsing transforms. ";
+			ss << "Section \"" << section << "\" has incomplete translation. ";
+			ss << "Required: (translation.x, translation.y, translation.z)";
+			throw ptree_error(ss.str());
+		}
+
+		Eigen::Vector3d translation(tx.get(), ty.get(), tz.get());
+
+		if (yaw && pitch && roll) {
+			if (qw || qx || qy || qz) {
+				stringstream ss;
+				ss << "Error parsing transforms. ";
+				ss << "Section \"" << section << "\" has arbitrary rotation declarations. ";
+				ss << "Use either yaw/pitch/roll or quaternion. ";
+				throw ptree_error(ss.str());
+			}
+			Eigen::AngleAxisd rollAngle(roll.get(), Eigen::Vector3d::UnitZ());
+			Eigen::AngleAxisd yawAngle(yaw.get(), Eigen::Vector3d::UnitY());
+			Eigen::AngleAxisd pitchAngle(pitch.get(), Eigen::Vector3d::UnitX());
+			Eigen::Quaterniond r = rollAngle * yawAngle * pitchAngle;
+			Eigen::Affine3d a = Eigen::Affine3d().fromPositionOrientationScale(translation, r,
+								Eigen::Vector3d::Ones());
+			Transform t(a, parent, child, boost::posix_time::microsec_clock::universal_time());
+			LOG4CXX_DEBUG(logger, "parsed transform: " << t);
+			transforms.push_back(t);
+			continue;
+
+		} else if (qw && qx && qy && qz) {
+			if (yaw || pitch || roll) {
+				stringstream ss;
+				ss << "Error parsing transforms. ";
+				ss << "Section \"" << section << "\" has arbitrary rotation declarations. ";
+				ss << "Use either yaw/pitch/roll or quaternion. ";
+				throw ptree_error(ss.str());
+			}
+			Eigen::Quaterniond r(qw.get(), qx.get(), qy.get(), qz.get());
+			Eigen::Affine3d a = Eigen::Affine3d().fromPositionOrientationScale(translation, r,
+								Eigen::Vector3d::Ones());
+			Transform t(a, parent, child, boost::posix_time::microsec_clock::universal_time());
+			LOG4CXX_DEBUG(logger, "parsed transform: " << t);
+			transforms.push_back(t);
+			continue;
+		} else {
+			stringstream ss;
+			ss << "Error parsing transforms. ";
+			ss << "Section \"" << itTrans->first << "\" has incomplete rotation. ";
+			ss << "Required: (rotation.yaw, rotation.pitch, rotation.roll)";
+			ss << " OR (rotation.qw, rotation.qx, rotation.qy, rotation.qz)";
+			throw ptree_error(ss.str());
+		}
+	}
+	return transforms;
 }
 
 } /* namespace rct */

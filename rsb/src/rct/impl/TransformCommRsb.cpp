@@ -12,6 +12,7 @@
 #include <rsb/Handler.h>
 #include <rsb/Event.h>
 #include <rsb/MetaData.h>
+#include <rsc/runtime/TypeStringTools.h>
 #include <log4cxx/log4cxx.h>
 
 using namespace std;
@@ -86,6 +87,7 @@ bool TransformCommRsb::sendTransform(const Transform& transform, bool isStatic) 
 	boost::mutex::scoped_lock(mutex);
 	EventPtr event(new Event());
 	event->setData(t);
+	event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
 	if (isStatic) {
 		sendCacheStatic[cacheKey] = t;
 		event->setScope(Scope("/rct/transform/static"));
@@ -112,12 +114,14 @@ void TransformCommRsb::publishCache() {
 		EventPtr event(new Event());
 		event->setData(it->second);
 		event->setScope(Scope("/rct/transform/nonstatic"));
+		event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
 		rsbInformerTransform->publish(event);
 	}
 	for (it = sendCacheStatic.begin(); it != sendCacheStatic.end(); it++) {
 		EventPtr event(new Event());
 		event->setData(it->second);
 		event->setScope(Scope("/rct/transform/static"));
+		event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
 		rsbInformerTransform->publish(event);
 	}
 }
@@ -143,6 +147,11 @@ void TransformCommRsb::removeTransformListener(
 }
 
 void TransformCommRsb::frameTransformCallback(EventPtr event) {
+	if (event->getMetaData().getSenderId() == rsbInformerTransform->getId()) {
+		LOG4CXX_DEBUG(logger, "Received transform from myself. Ignore. (id " << event->getMetaData().getSenderId().getIdAsString() << ")");
+		return;
+	}
+
 	boost::shared_ptr<FrameTransform> t = boost::static_pointer_cast<FrameTransform>(event->getData());
 	string authority = event->getMetaData().getSenderId().getIdAsString();
 	vector<string> scopeComponents = event->getScope().getComponents();

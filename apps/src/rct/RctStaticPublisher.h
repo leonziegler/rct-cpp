@@ -41,7 +41,7 @@ private:
 
 class RctStaticPublisher {
 public:
-	RctStaticPublisher(const std::vector<std::string> &configFiles, bool bridge);
+	RctStaticPublisher(const std::string &configFile, bool bridge);
 	virtual ~RctStaticPublisher();
 
 	void run();
@@ -49,6 +49,7 @@ public:
 	void notify();
 
 private:
+	std::string configFile;
 	Transformer::Ptr transformerRsb;
 	TransformCommunicator::Ptr commRos;
 	Handler::Ptr rosHandler;
@@ -58,6 +59,8 @@ private:
 
 	boost::condition_variable cond;
 	boost::mutex mutex;
+
+	std::vector<Transform> parseTransforms(const std::string &file) const;
 
 	static log4cxx::LoggerPtr logger;
 };

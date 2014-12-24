@@ -12,6 +12,8 @@
 #include <rsc/runtime/Properties.h>
 #include <boost/format.hpp>
 
+namespace rct {
+
 class TransformerConfig: public rsc::config::OptionHandler,
 		public rsc::runtime::Printable {
 public:
@@ -153,5 +155,6 @@ private:
 			}
 		}
 	}
+};
+
 }
-;

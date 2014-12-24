@@ -89,6 +89,33 @@ public:
 			const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
 			std::string* error_msg = NULL) const = 0;
 
+	/** \brief A way to get a std::vector of available frame ids */
+	virtual std::vector<std::string> getFrameStrings() const = 0;
+
+	/**@brief Check if a frame exists in the tree
+	 * @param frame_id_str The frame id in question */
+	virtual bool frameExists(const std::string& frame_id_str) const = 0;
+
+	/**@brief Fill the parent of a frame.
+	 * @param frame_id The frame id of the frame in question
+	 * @param parent The reference to the string to fill the parent
+	 * Returns true unless "NO_PARENT" */
+	virtual std::string getParent(const std::string& frame_id, const boost::posix_time::ptime &time) const = 0;
+
+	/** \brief Backwards compatabilityA way to see what frames have been cached
+	 * Useful for debugging
+	 */
+	virtual std::string allFramesAsDot() const = 0;
+
+	/** \brief A way to see what frames have been cached in yaml format
+	 * Useful for debugging tools
+	 */
+	virtual std::string allFramesAsYAML() const = 0;
+
+	/** \brief A way to see what frames have been cached
+	 * Useful for debugging
+	 */
+	virtual std::string allFramesAsString() const = 0;
 private:
 
 };

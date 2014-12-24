@@ -19,7 +19,7 @@ public:
 	virtual ~TransformerTF2();
 
 	/** \brief Clear all data */
-	void clear();
+	virtual void clear();
 
 	/** \brief Add transform information to the rct data structure
 	 * \param transform The transform to store
@@ -27,7 +27,7 @@ public:
 	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
 	 * \return True unless an error occured
 	 */
-	bool setTransform(const Transform& transform, bool is_static = false);
+	virtual bool setTransform(const Transform& transform, bool is_static = false);
 
 	/** \brief Get the transform between two frames by frame ID.
 	 * \param target_frame The frame to which data should be transformed
@@ -36,7 +36,7 @@ public:
 	 * \return The transform between the frames
 	 *
 	 */
-	Transform lookupTransform(const std::string& target_frame,
+	virtual Transform lookupTransform(const std::string& target_frame,
 			const std::string& source_frame, const boost::posix_time::ptime& time) const;
 
 	/** \brief Get the transform between two frames by frame ID assuming fixed frame.
@@ -51,7 +51,7 @@ public:
 	 * tf2::ExtrapolationException, tf2::InvalidArgumentException
 	 */
 
-	Transform lookupTransform(const std::string& target_frame,
+	virtual Transform lookupTransform(const std::string& target_frame,
 			const boost::posix_time::ptime &target_time, const std::string& source_frame,
 			const boost::posix_time::ptime &source_time, const std::string& fixed_frame) const;
 
@@ -62,7 +62,7 @@ public:
 	 * \param error_msg A pointer to a string which will be filled with why the transform failed, if not NULL
 	 * \return True if the transform is possible, false otherwise
 	 */
-	bool canTransform(const std::string& target_frame,
+	virtual bool canTransform(const std::string& target_frame,
 			const std::string& source_frame, const boost::posix_time::ptime &time,
 			std::string* error_msg = NULL) const;
 
@@ -75,11 +75,38 @@ public:
 	 * \param error_msg A pointer to a string which will be filled with why the transform failed, if not NULL
 	 * \return True if the transform is possible, false otherwise
 	 */
-	bool canTransform(const std::string& target_frame,
+	virtual bool canTransform(const std::string& target_frame,
 			const boost::posix_time::ptime &target_time, const std::string& source_frame,
 			const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
 			std::string* error_msg = NULL) const;
 
+	/** \brief A way to get a std::vector of available frame ids */
+	virtual std::vector<std::string> getFrameStrings() const;
+
+	/**@brief Check if a frame exists in the tree
+	 * @param frame_id_str The frame id in question */
+	virtual bool frameExists(const std::string& frame_id_str) const;
+
+	/**@brief Fill the parent of a frame.
+	 * @param frame_id The frame id of the frame in question
+	 * @param parent The reference to the string to fill the parent
+	 * Returns true unless "NO_PARENT" */
+	virtual std::string getParent(const std::string& frame_id, const boost::posix_time::ptime &time) const;
+
+	/** \brief Backwards compatabilityA way to see what frames have been cached
+	 * Useful for debugging
+	 */
+	virtual std::string allFramesAsDot() const;
+
+	/** \brief A way to see what frames have been cached in yaml format
+	 * Useful for debugging tools
+	 */
+	virtual std::string allFramesAsYAML() const;
+
+	/** \brief A way to see what frames have been cached
+	 * Useful for debugging
+	 */
+	virtual std::string allFramesAsString() const;
 
 	static void convertTransformToTf(const Transform &t, geometry_msgs::TransformStamped &tOut);
 	static void convertTfToTransform(const geometry_msgs::TransformStamped &t, Transform &tOut);
