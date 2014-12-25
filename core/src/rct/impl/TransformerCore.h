@@ -10,6 +10,7 @@
 #include <rct/Transform.h>
 #include <rct/impl/TransformListener.h>
 #include <rsc/runtime/Printable.h>
+#include <rsc/threading/Future.h>
 #include <Eigen/Geometry>
 #include <string>
 #include <boost/noncopyable.hpp>
@@ -22,6 +23,9 @@ class TransformerCore: public TransformListener, public virtual rsc::runtime::Pr
 		public boost::noncopyable {
 public:
 	typedef boost::shared_ptr<TransformerCore> Ptr;
+    typedef rsc::threading::Future<Transform> FutureType;
+    typedef boost::shared_ptr<FutureType> FuturePtr;
+
 	TransformerCore() {
 	}
 	virtual ~TransformerCore() {
@@ -63,6 +67,17 @@ public:
 	virtual Transform lookupTransform(const std::string& target_frame,
 			const boost::posix_time::ptime& target_time, const std::string& source_frame,
 			const boost::posix_time::ptime& source_time, const std::string& fixed_frame) const = 0;
+
+	/** \brief Request the transform between two frames by frame ID.
+	 * \param target_frame The frame to which data should be transformed
+	 * \param source_frame The frame where the data originated
+	 * \param time The time at which the value of the transform is desired. (0 will get the latest)
+	 * \return A future object representing the request status and transform between the frames
+	 *
+	 */
+	virtual FuturePtr requestTransform(const std::string& target_frame,
+			const std::string& source_frame,
+			const boost::posix_time::ptime& time) = 0;
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform

@@ -10,11 +10,17 @@
 using namespace boost;
 using namespace std;
 using namespace Eigen;
+using namespace tf2;
 
 namespace rct {
 
+log4cxx::LoggerPtr TransformerTF2::logger = log4cxx::Logger::getLogger("rct.core.TransformerTF2");
+
 TransformerTF2::TransformerTF2(const posix_time::time_duration& cacheTime) :
 		tfBuffer(ros::Duration().fromNSec(cacheTime.total_nanoseconds())) {
+
+	tf2::BufferCore::TransformableCallback f1(bind(&TransformerTF2::tfRequestCallback, this, _1, _2, _3, _4, _5));
+	tfCallbackHandle = tfBuffer.addTransformableCallback(f1);
 }
 
 TransformerTF2::~TransformerTF2() {
@@ -80,6 +86,46 @@ Transform TransformerTF2::lookupTransform(const std::string& target_frame,
 	return t1;
 }
 
+TransformerTF2::FuturePtr TransformerTF2::requestTransform(
+		const std::string& target_frame, const std::string& source_frame,
+		const boost::posix_time::ptime& time) {
+
+	FuturePtr result(new FutureType());
+	TransformableRequestHandle handle = tfBuffer.addTransformableRequest(tfCallbackHandle, target_frame, source_frame, ros::Time().fromBoost(time));
+	{
+		boost::mutex::scoped_lock lock(inprogressMutex);
+		this->inprogress.insert(std::make_pair(handle, result));
+	}
+	return result;
+}
+
+void TransformerTF2::tfRequestCallback(TransformableRequestHandle request_handle, const std::string& target_frame, const std::string& source_frame,
+                                   ros::Time time, TransformableResult tresult) {
+	FuturePtr result;
+    {
+        boost::mutex::scoped_lock lock(this->inprogressMutex);
+        map<TransformableRequestHandle, FuturePtr>::const_iterator it
+            = this->inprogress.find(request_handle);
+        if (it != this->inprogress.end()) {
+            result = it->second;
+            this->inprogress.erase(request_handle);
+        }
+    }
+    if (!result) {
+        LOG4CXX_DEBUG(this->logger, "Received uninteresting callback " << target_frame << " -> " << source_frame);
+        return;
+    }
+    LOG4CXX_DEBUG(this->logger, "Received reply callback " << target_frame << " -> " << source_frame);
+    if (tresult == TransformFailure) {
+        result->setError("Transform Failure");
+    } else {
+    	geometry_msgs::TransformStamped t0 = tfBuffer.lookupTransform(target_frame, source_frame, time);
+		Transform t1;
+		convertTfToTransform(t0, t1);
+        result->set(t1);
+    }
+}
+
 bool TransformerTF2::canTransform(const std::string& target_frame,
 		const std::string& source_frame, const posix_time::ptime& time,
 		std::string* error_msg) const {
@@ -130,3 +176,4 @@ std::string TransformerTF2::allFramesAsString() const {
 }
 
 } /* namespace rct */
+

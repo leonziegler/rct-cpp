@@ -29,8 +29,8 @@ void printHelp(int argc, char **argv, options_description desc) {
 	cout << "target_frame into the source_frame." << endl;
 }
 
-int main(int argc, char **argv) {
-
+int handleArgs(int argc, char **argv, string &frame_target,
+		string &frame_source, bool &matrix, bool &quaternion) {
 	boost::program_options::positional_options_description p0;
 	p0.add("frames", -1);
 
@@ -86,29 +86,51 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	string source = frames[0];
-	string target = frames[1];
-
-	rct::Transformer::Ptr transformerRsb =
-			rct::getTransformerFactory().createTransformer();
-
-	usleep(1000000);
-
-	rct::Transform t = transformerRsb->lookupTransform(target, source,
-			boost::posix_time::microsec_clock::universal_time());
-
-	if (vm.count("matrix")) {
-		cout << "Transformation:\n" << t.getTransform().matrix() << endl;
-	} else if (vm.count("quaternion")) {
-		cout << "Translation (x,y,z):\n" << t.getTranslation() << endl;
-		cout << "Rotation (Quat w,x,y,z):\n" << t.getRotationQuat().w() << "\n"
-				<< t.getRotationQuat().x() << "\n" << t.getRotationQuat().y()
-				<< "\n" << t.getRotationQuat().z() << endl;
-	} else {
-		Eigen::Vector3d ypr = t.getRotationYPR();
-		cout << "Translation (x,y,z):\n" << t.getTranslation() << endl;
-		cout << "Rotation (yaw,pitch,roll):\n" << ypr.x() << "\n" << ypr.y() << "\n" << ypr.z() << endl;
-	}
+	frame_source = frames[0];
+	frame_target = frames[1];
+	matrix = vm.count("matrix");
+	quaternion = vm.count("quaternion");
 	return 0;
 }
 
+int main(int argc, char **argv) {
+
+	string frame_target, frame_source;
+	bool matrix, quaternion;
+
+	int ret = handleArgs(argc, argv, frame_target, frame_source, matrix,
+			quaternion);
+	if (ret != 0) {
+		return ret;
+	}
+
+	boost::posix_time::ptime now(
+			boost::posix_time::microsec_clock::universal_time());
+
+	rct::Transformer::Ptr transformerRsb =
+			rct::getTransformerFactory().createTransformer();
+	rct::Transformer::FuturePtr future;
+	future = transformerRsb->requestTransform(frame_target, frame_source, now);
+
+	try {
+		rct::Transform t = future->get(2.0);
+
+		if (matrix) {
+			cout << "Transformation:\n" << t.getTransform().matrix() << endl;
+		} else if (quaternion) {
+			cout << "Translation (x,y,z):\n" << t.getTranslation() << endl;
+			cout << "Rotation (Quat w,x,y,z):\n" << t.getRotationQuat().w() << "\n"
+					<< t.getRotationQuat().x() << "\n" << t.getRotationQuat().y()
+					<< "\n" << t.getRotationQuat().z() << endl;
+		} else {
+			Eigen::Vector3d ypr = t.getRotationYPR();
+			cout << "Translation (x,y,z):\n" << t.getTranslation() << endl;
+			cout << "Rotation (yaw,pitch,roll):\n" << ypr.x() << "\n" << ypr.y()
+					<< "\n" << ypr.z() << endl;
+		}
+		return 0;
+	} catch (std::exception &e) {
+		cerr << "ERROR: " << e.what() << endl;
+		return 1;
+	}
+}

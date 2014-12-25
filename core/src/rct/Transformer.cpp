@@ -59,6 +59,12 @@ Transform Transformer::lookupTransform(const std::string& target_frame,
 	return core->lookupTransform(target_frame, target_time, source_frame, source_time, fixed_frame);
 }
 
+Transformer::FuturePtr Transformer::requestTransform(const std::string& target_frame,
+			const std::string& source_frame,
+			const boost::posix_time::ptime& time) {
+	return core->requestTransform(target_frame, source_frame, time);
+}
+
 bool Transformer::canTransform(const std::string& target_frame,
 		const std::string& source_frame, const boost::posix_time::ptime& time,
 		std::string* error_msg) const {

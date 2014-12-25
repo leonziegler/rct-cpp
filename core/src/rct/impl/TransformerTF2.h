@@ -9,12 +9,17 @@
 
 #include "TransformerCore.h"
 #include <tf2/buffer_core.h>
+#include <log4cxx/log4cxx.h>
+#include <log4cxx/logger.h>
 
 namespace rct {
 
 class TransformerTF2: public TransformerCore {
 public:
 	typedef boost::shared_ptr<TransformerTF2> Ptr;
+	typedef rsc::threading::Future<Transform> FutureType;
+	typedef boost::shared_ptr<FutureType> FuturePtr;
+
 	TransformerTF2(const boost::posix_time::time_duration& cacheTime);
 	virtual ~TransformerTF2();
 
@@ -54,6 +59,17 @@ public:
 	virtual Transform lookupTransform(const std::string& target_frame,
 			const boost::posix_time::ptime &target_time, const std::string& source_frame,
 			const boost::posix_time::ptime &source_time, const std::string& fixed_frame) const;
+
+	/** \brief Request the transform between two frames by frame ID.
+	 * \param target_frame The frame to which data should be transformed
+	 * \param source_frame The frame where the data originated
+	 * \param time The time at which the value of the transform is desired. (0 will get the latest)
+	 * \return A future object representing the request status and transform between the frames
+	 *
+	 */
+	virtual FuturePtr requestTransform(const std::string& target_frame,
+			const std::string& source_frame,
+			const boost::posix_time::ptime& time);
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -117,7 +133,13 @@ public:
 
 private:
 	tf2::BufferCore tfBuffer;
+	tf2::TransformableCallbackHandle tfCallbackHandle;
+    boost::mutex inprogressMutex;
+    std::map<tf2::TransformableRequestHandle, FuturePtr> inprogress;
+    static log4cxx::LoggerPtr logger;
 
+    void tfRequestCallback(tf2::TransformableRequestHandle request_handle, const std::string& target_frame, const std::string& source_frame,
+                                   ros::Time time, tf2::TransformableResult result);
 };
 
 } /* namespace rct */
