@@ -1,0 +1,69 @@
+# - Config file for the ClassificationFusion package
+# It defines the following variables
+#  RCT_INCLUDE_DIRS - include directories for PCA
+#  RCT_LIBRARY_DIRS - lib directories to link against
+#  RCT_LIBRARIES    - libraries to link against
+ 
+INCLUDE(FindPkgConfig)
+
+
+# --- dependencies ---
+#rsc
+find_package(RSC 0.11 REQUIRED)
+message(STATUS "RSC version: ${RSC_VERSION}")
+message(STATUS "RSC libraries: ${RSC_LIBRARIES}")
+message(STATUS "RSC runtime library dirs: ${RSC_RUNTIME_LIBRARY_DIRS}")
+message(STATUS "RSC CMake module path: ${RSC_CMAKE_MODULE_PATH}")
+list(APPEND ADDITIONAL_INCLUDE_DIRS ${RSC_INCLUDE_DIRS})
+list(APPEND ADDITIONAL_LIBRARY_DIRS ${RSC_LIBRARY_DIRS})
+
+set(PROJECT_CMAKE_PATH "${CMAKE_INSTALL_PREFIX}/share/cmake/Modules")
+#set(CMAKE_MODULE_PATH ${PROJECT_CMAKE_PATH} ${CMAKE_MODULE_PATH} ${RSC_CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules )
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules )
+message(STATUS "Using CMake module path: ${CMAKE_MODULE_PATH}")
+
+find_package(Eigen3 REQUIRED)
+list(APPEND ADDITIONAL_INCLUDE_DIRS ${Eigen3_INCLUDE_DIRS})
+list(APPEND ADDITIONAL_LIBRARY_DIRS ${Eigen3_LIBRARY_DIRS})
+
+find_package(Log4cxx REQUIRED)
+list(APPEND ADDITIONAL_INCLUDE_DIRS ${Log4cxx_INCLUDE_DIRS})
+list(APPEND ADDITIONAL_LIBRARY_DIRS ${Log4cxx_LIBRARY_DIRS})
+
+find_package(tf2 QUIET)
+list(APPEND ADDITIONAL_INCLUDE_DIRS  ${tf2_INCLUDE_DIRS})
+list(APPEND ADDITIONAL_LIBRARY_DIRS ${tf2_LIBRARY_DIRS})
+if(tf2_FOUND)
+	message(STATUS "tf2 version: ${tf2_VERSION}")
+	set(RCT_HAVE_TF2 TRUE)
+else(tf2_FOUND)
+	message(STATUS "tf2 not found. Support will NOT be built!")
+endif(tf2_FOUND)
+
+#rsb/t
+find_package(RSB 0.11 QUIET)
+find_package(RST 0.11 QUIET)
+if(RSB_FOUND AND RST_FOUND)
+	message(STATUS "RSB version: ${RSB_VERSION}")
+	message(STATUS "RST version: ${RST_VERSION}")
+	set(RCT_HAVE_RSB TRUE)
+	list(APPEND ADDITIONAL_INCLUDE_DIRS  ${RSB_INCLUDE_DIRS} ${RST_INCLUDE_DIRS})
+	list(APPEND ADDITIONAL_LIBRARY_DIRS ${RSB_LIBRARY_DIRS})
+	list(APPEND ADDITIONAL_CFLAGS ${RST_CFLAGS})
+endif(RSB_FOUND AND RST_FOUND)
+
+#boost
+find_package(Boost REQUIRED QUIET COMPONENTS thread program_options date_time)
+list(APPEND ADDITIONAL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
+list(APPEND ADDITIONAL_LIBRARY_DIRS ${Boost_LIBRARY_DIRS})
+add_definitions(-DBOOST_LOG_DYN_LINK)
+
+GET_FILENAME_COMPONENT(CONFIG_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+SET(RCT_FOUND TRUE)
+SET(RCT_INCLUDE_DIRS "${CONFIG_DIR}/../../include" "${ADDITIONAL_INCLUDE_DIRS}")
+SET(RCT_LIBRARY_DIRS "${CONFIG_DIR}/../../lib" "${ADDITIONAL_LIBRARY_DIRS}")
+SET(RCT_VERSION "@RCT_VERSION@")
+SET(RCT_CFLAGS "${ADDITIONAL_CFLAGS}")
+SET(RCT_LIBRARIES "${CONFIG_DIR}/../../lib/@RCT_BUILD_PREFIX@@RCT_NAME@@RCT_BUILD_SUFFIX@" "${CONFIG_DIR}/../../lib/@RCT_BUILD_PREFIX@@RCT_NAME_RSB@@RCT_BUILD_SUFFIX@" "${CONFIG_DIR}/../../lib/@RCT_BUILD_PREFIX@@RCT_NAME_ROS@@RCT_BUILD_SUFFIX@")
+
+# TODO: find dependencies here and append their include dirs to RCT_INCLUDE_DIRS
