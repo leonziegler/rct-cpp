@@ -7,6 +7,8 @@
 
 #include "../impl/TransformerTF2.h"
 
+#include <boost/algorithm/string.hpp>
+
 using namespace boost;
 using namespace std;
 using namespace Eigen;
@@ -164,7 +166,11 @@ std::string TransformerTF2::getParent(const std::string& frame_id, const boost::
 }
 
 std::string TransformerTF2::allFramesAsDot() const {
-	return tfBuffer._allFramesAsDot();
+	std::string dot = tfBuffer._allFramesAsDot();
+	boost::algorithm::replace_all(dot, " tf ", " RCT ");
+	boost::algorithm::replace_all(dot, "Broadcaster:", "Publisher:");
+	boost::algorithm::replace_all(dot, "Average rate: 10000.000 Hz\\nMost recent transform: 0.000 \\nBuffer length: 0.000 sec", "Static");
+	return dot;
 }
 
 std::string TransformerTF2::allFramesAsYAML() const {

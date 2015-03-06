@@ -35,18 +35,18 @@ TransformerFactory& TransformerFactory::getInstanceBase() {
 	return rsc::patterns::Singleton<TransformerFactory>::getInstance();
 }
 
-Transformer::Ptr TransformerFactory::createTransformer(const TransformerConfig& config) const {
+Transformer::Ptr TransformerFactory::createTransformer(const std::string &name, const TransformerConfig& config) const {
 	vector<TransformListener::Ptr> allListeners;
-	return createTransformer(allListeners, config);
+	return createTransformer(name, allListeners, config);
 }
 
-Transformer::Ptr TransformerFactory::createTransformer(const TransformListener::Ptr& listener, const TransformerConfig& config) const {
+Transformer::Ptr TransformerFactory::createTransformer(const std::string &name, const TransformListener::Ptr& listener, const TransformerConfig& config) const {
 	vector<TransformListener::Ptr> allListeners;
 	allListeners.push_back(listener);
-	return createTransformer(allListeners, config);
+	return createTransformer(name, allListeners, config);
 }
 
-Transformer::Ptr TransformerFactory::createTransformer(const vector<TransformListener::Ptr>& listeners, const TransformerConfig& config) const {
+Transformer::Ptr TransformerFactory::createTransformer(const std::string &name, const vector<TransformListener::Ptr>& listeners, const TransformerConfig& config) const {
 	vector<TransformListener::Ptr> allListeners;
 	allListeners.insert(allListeners.end(), listeners.begin(), listeners.end());
 	TransformerCore::Ptr core;
@@ -63,7 +63,7 @@ Transformer::Ptr TransformerFactory::createTransformer(const vector<TransformLis
 	vector<TransformCommunicator::Ptr> comms;
 #ifdef RCT_HAVE_RSB
 	if (config.getCommType() == TransformerConfig::AUTO || config.getCommType() == TransformerConfig::RSB) {
-		comms.push_back(TransformCommRsb::Ptr(new TransformCommRsb(config.getCacheTime(), allListeners)));
+		comms.push_back(TransformCommRsb::Ptr(new TransformCommRsb(name, config.getCacheTime(), allListeners)));
 	}
 #endif
 #ifdef RCT_HAVE_ROS

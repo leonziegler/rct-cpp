@@ -24,15 +24,15 @@ namespace rct {
 log4cxx::LoggerPtr TransformCommRsb::logger = log4cxx::Logger::getLogger("rcs.rsb.TransformComRsb");
 
 TransformCommRsb::TransformCommRsb(
-		const boost::posix_time::time_duration& cacheTime,
-		const TransformListener::Ptr& l) {
+		const string &authority, const boost::posix_time::time_duration& cacheTime,
+		const TransformListener::Ptr& l):authority(authority) {
 
 	addTransformListener(l);
 }
 
 TransformCommRsb::TransformCommRsb(
-		const boost::posix_time::time_duration& cacheTime,
-		const vector<TransformListener::Ptr>& l) {
+		const string &authority, const boost::posix_time::time_duration& cacheTime,
+		const vector<TransformListener::Ptr>& l):authority(authority) {
 
 	addTransformListener(l);
 }
@@ -84,10 +84,14 @@ bool TransformCommRsb::sendTransform(const Transform& transform, bool isStatic) 
 
 	LOG4CXX_DEBUG(logger, "Publishing transform from " << rsbInformerTransform->getId().getIdAsString());
 
+	MetaData meta;
+	meta.setUserInfo("authority", authority);
+
 	boost::mutex::scoped_lock(mutex);
 	EventPtr event(new Event());
 	event->setData(t);
 	event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
+	event->setMetaData(meta);
 	if (isStatic) {
 		sendCacheStatic[cacheKey] = t;
 		event->setScope(Scope("/rct/transform/static"));
@@ -109,12 +113,15 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, b
 
 void TransformCommRsb::publishCache() {
 	LOG4CXX_DEBUG(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
+	MetaData meta;
+	meta.setUserInfo("authority", authority);
 	map<string, shared_ptr<FrameTransform> >::iterator it;
 	for (it = sendCache.begin(); it != sendCache.end(); it++) {
 		EventPtr event(new Event());
 		event->setData(it->second);
 		event->setScope(Scope("/rct/transform/nonstatic"));
 		event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
+		event->setMetaData(meta);
 		rsbInformerTransform->publish(event);
 	}
 	for (it = sendCacheStatic.begin(); it != sendCacheStatic.end(); it++) {
@@ -122,6 +129,7 @@ void TransformCommRsb::publishCache() {
 		event->setData(it->second);
 		event->setScope(Scope("/rct/transform/static"));
 		event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
+		event->setMetaData(meta);
 		rsbInformerTransform->publish(event);
 	}
 }
@@ -153,7 +161,7 @@ void TransformCommRsb::frameTransformCallback(EventPtr event) {
 	}
 
 	boost::shared_ptr<FrameTransform> t = boost::static_pointer_cast<FrameTransform>(event->getData());
-	string authority = event->getMetaData().getSenderId().getIdAsString();
+	string authority = event->getMetaData().getUserInfo("authority");
 	vector<string> scopeComponents = event->getScope().getComponents();
 	vector<string>::iterator it = find(scopeComponents.begin(), scopeComponents.end(), "nonstatic");
 	bool isStatic = it == scopeComponents.end();
@@ -231,12 +239,13 @@ void TransformCommRsb::convertPbToTransform(
 }
 
 void TransformCommRsb::printContents(std::ostream& stream) const {
-	stream << "communication = rsb";
+	stream << "authority = " << authority;
+	stream << ", communication = rsb";
 	stream << ", #listeners = " << listeners.size();
 	stream << ", #cache = " << sendCache.size();
 }
 
 string TransformCommRsb::getAuthorityName() const {
-	return rsbInformerTransform->getId().getIdAsString();
+	return authority;
 }
 }  // namespace rct

@@ -36,9 +36,9 @@ class TransformerFactory: private rsc::patterns::Singleton<TransformerFactory> {
 public:
 	virtual ~TransformerFactory();
 
-	Transformer::Ptr createTransformer(const TransformerConfig& cacheTime = TransformerConfig()) const;
-	Transformer::Ptr createTransformer(const TransformListener::Ptr& listener, const TransformerConfig& cacheTime = TransformerConfig()) const;
-	Transformer::Ptr createTransformer(const std::vector<TransformListener::Ptr>& listeners, const TransformerConfig& cacheTime = TransformerConfig()) const;
+	Transformer::Ptr createTransformer(const std::string &name, const TransformerConfig& cacheTime = TransformerConfig()) const;
+	Transformer::Ptr createTransformer(const std::string &name, const TransformListener::Ptr& listener, const TransformerConfig& cacheTime = TransformerConfig()) const;
+	Transformer::Ptr createTransformer(const std::string &name, const std::vector<TransformListener::Ptr>& listeners, const TransformerConfig& cacheTime = TransformerConfig()) const;
 
 	friend class rsc::patterns::Singleton<TransformerFactory>;
 private:

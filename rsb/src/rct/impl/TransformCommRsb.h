@@ -21,8 +21,8 @@ namespace rct {
 class TransformCommRsb: public TransformCommunicator {
 public:
 	typedef boost::shared_ptr<TransformCommRsb> Ptr;
-	TransformCommRsb(const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener);
-	TransformCommRsb(const boost::posix_time::time_duration& cacheTime, const std::vector<TransformListener::Ptr>& listeners);
+	TransformCommRsb(const std::string &authority, const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener);
+	TransformCommRsb(const std::string &authority, const boost::posix_time::time_duration& cacheTime, const std::vector<TransformListener::Ptr>& listeners);
 	virtual ~TransformCommRsb();
 
 	virtual void init(const TransformerConfig &conf);
@@ -57,6 +57,7 @@ private:
 	boost::mutex mutex;
 	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCache;
 	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCacheStatic;
+	std::string authority;
 
 	void frameTransformCallback(rsb::EventPtr t);
 	void triggerCallback(rsb::EventPtr t);

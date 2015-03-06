@@ -66,7 +66,7 @@ find_package(Log4cxx REQUIRED)
 include_directories(BEFORE SYSTEM  ${Log4cxx_INCLUDE_DIRS})
 link_directories(${Log4cxx_LIBRARY_DIRS})
 
-find_package(tf2 QUIET)
+find_package(tf2 QUIET REQUIRED)
 include_directories(BEFORE SYSTEM  ${tf2_INCLUDE_DIRS})
 link_directories(${tf2_LIBRARY_DIRS})
 if(tf2_FOUND)
