@@ -26,7 +26,7 @@ set(MANDIR     "${PREFIX}/man")
 set(LIBDIR     "${PREFIX}/lib/")
 set(DATADIR    "${PREFIX}/share/${RCT_PACKAGE}")
 
-option(BUILD_EXAMPLES "build examples?" OFF)
+option(BUILD_EXAMPLES "build examples?" ON)
 
 if(WIN32)
     set(RCT_BUILD_TYPE      STATIC)
