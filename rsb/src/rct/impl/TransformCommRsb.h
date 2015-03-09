@@ -55,8 +55,8 @@ private:
 	rsb::Informer<void>::Ptr rsbInformerTrigger;
 	std::vector<TransformListener::Ptr> listeners;
 	boost::mutex mutex;
-	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCacheDynamic;
-	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCacheStatic;
+	std::map<std::string, std::pair<boost::shared_ptr<FrameTransform>, rsb::MetaData> > sendCacheDynamic;
+	std::map<std::string, std::pair<boost::shared_ptr<FrameTransform>, rsb::MetaData> > sendCacheStatic;
 	std::string authority;
 
 	void frameTransformCallback(rsb::EventPtr t);

@@ -82,27 +82,33 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 	convertTransformToPb(transform, t);
 	string cacheKey = transform.getFrameParent() + transform.getFrameChild();
 
-	LOG4CXX_DEBUG(logger, "Publishing transform from " << rsbInformerTransform->getId().getIdAsString());
+	LOG4CXX_DEBUG(logger, "sendTransform()");
 
 	MetaData meta;
-	meta.setUserInfo("authority", authority);
+	if (transform.getAuthority() == "") {
+		meta.setUserInfo("authority", authority);
+	} else {
+		meta.setUserInfo("authority", transform.getAuthority());
+	}
 
 	boost::mutex::scoped_lock(mutex);
+	LOG4CXX_DEBUG(logger, "Publishing transform from " << rsbInformerTransform->getId().getIdAsString());
 	EventPtr event(new Event());
 	event->setData(t);
 	event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
 	event->setMetaData(meta);
 	if (type == STATIC) {
-		sendCacheStatic[cacheKey] = t;
+		sendCacheStatic[cacheKey] = make_pair(t, meta);
 		event->setScope(Scope("/rct/transform/static"));
 	} else if (type == DYNAMIC) {
-		sendCacheDynamic[cacheKey] = t;
+		sendCacheDynamic[cacheKey] = make_pair(t, meta);
 		event->setScope(Scope("/rct/transform/dynamic"));
 	} else {
 		LOG4CXX_ERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
 		return false;
 	}
 	rsbInformerTransform->publish(event);
+	LOG4CXX_DEBUG(logger, "Publishing done");
 	return true;
 }
 
@@ -116,23 +122,21 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, T
 
 void TransformCommRsb::publishCache() {
 	LOG4CXX_DEBUG(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
-	MetaData meta;
-	meta.setUserInfo("authority", authority);
-	map<string, shared_ptr<FrameTransform> >::iterator it;
+	map<string,  std::pair<boost::shared_ptr<FrameTransform>, MetaData> >::iterator it;
 	for (it = sendCacheDynamic.begin(); it != sendCacheDynamic.end(); it++) {
 		EventPtr event(new Event());
-		event->setData(it->second);
+		event->setData(it->second.first);
 		event->setScope(Scope("/rct/transform/dynamic"));
 		event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
-		event->setMetaData(meta);
+		event->setMetaData(it->second.second);
 		rsbInformerTransform->publish(event);
 	}
 	for (it = sendCacheStatic.begin(); it != sendCacheStatic.end(); it++) {
 		EventPtr event(new Event());
-		event->setData(it->second);
+		event->setData(it->second.first);
 		event->setScope(Scope("/rct/transform/static"));
 		event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
-		event->setMetaData(meta);
+		event->setMetaData(it->second.second);
 		rsbInformerTransform->publish(event);
 	}
 }

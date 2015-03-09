@@ -63,12 +63,14 @@ Transformer::Ptr TransformerFactory::createTransformer(const std::string &name, 
 	vector<TransformCommunicator::Ptr> comms;
 #ifdef RCT_HAVE_RSB
 	if (config.getCommType() == TransformerConfig::AUTO || config.getCommType() == TransformerConfig::RSB) {
-		comms.push_back(TransformCommRsb::Ptr(new TransformCommRsb(name, config.getCacheTime(), allListeners)));
+		TransformCommRsb::Ptr p(new TransformCommRsb(name, config.getCacheTime(), allListeners));
+		comms.push_back(p);
 	}
 #endif
 #ifdef RCT_HAVE_ROS
 	if (config.getCommType() == TransformerConfig::AUTO || config.getCommType() == TransformerConfig::ROS) {
-		comms.push_back(TransformCommRos::Ptr(new TransformCommRos(config.getCacheTime(), allListeners)));
+		TransformCommRos::Ptr p(new TransformCommRos(config.getCacheTime(), allListeners));
+		comms.push_back();
 	}
 #endif
 
