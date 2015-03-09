@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 	rct::Transform staticTransform(affine, "A", "B", boost::posix_time::microsec_clock::universal_time());
 
 	// publish the static transform
-	transformer->sendTransform(staticTransform, true);
+	transformer->sendTransform(staticTransform, rct::STATIC);
 
 	double angle = 0;
 	while(enabled) {
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 		rct::Transform dynamicTransform(affine, "B", "C", boost::posix_time::microsec_clock::universal_time());
 
 		// publish the dynamic transform
-		transformer->sendTransform(dynamicTransform, false);
+		transformer->sendTransform(dynamicTransform, rct::DYNAMIC);
 
 		usleep(20 * 1000); // 50hz
 	}

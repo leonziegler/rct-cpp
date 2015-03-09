@@ -37,12 +37,12 @@ string Transformer::getAuthorityName() const {
 	return comm->getAuthorityName();
 }
 
-bool Transformer::sendTransform(const Transform& transform, bool isStatic) {
-	return comm->sendTransform(transform, isStatic);
+bool Transformer::sendTransform(const Transform& transform, TransformType type) {
+	return comm->sendTransform(transform, type);
 }
 
-bool Transformer::sendTransform(const std::vector<Transform>& transforms, bool isStatic) {
-	return comm->sendTransform(transforms, isStatic);
+bool Transformer::sendTransform(const std::vector<Transform>& transforms, TransformType type) {
+	return comm->sendTransform(transforms, type);
 }
 
 Transform Transformer::lookupTransform(const std::string& target_frame,

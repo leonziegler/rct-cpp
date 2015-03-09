@@ -73,7 +73,7 @@ void TransformCommRsb::requestSync() {
 	rsbInformerTrigger->publish(shared_ptr<void>());
 }
 
-bool TransformCommRsb::sendTransform(const Transform& transform, bool isStatic) {
+bool TransformCommRsb::sendTransform(const Transform& transform, TransformType type) {
 	if (!rsbInformerTransform) {
 		throw std::runtime_error("communicator was not initialized!");
 	}
@@ -92,21 +92,24 @@ bool TransformCommRsb::sendTransform(const Transform& transform, bool isStatic) 
 	event->setData(t);
 	event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
 	event->setMetaData(meta);
-	if (isStatic) {
+	if (type == STATIC) {
 		sendCacheStatic[cacheKey] = t;
 		event->setScope(Scope("/rct/transform/static"));
+	} else if (type == DYNAMIC) {
+		sendCacheDynamic[cacheKey] = t;
+		event->setScope(Scope("/rct/transform/dynamic"));
 	} else {
-		sendCache[cacheKey] = t;
-		event->setScope(Scope("/rct/transform/nonstatic"));
+		LOG4CXX_ERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
+		return false;
 	}
 	rsbInformerTransform->publish(event);
 	return true;
 }
 
-bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, bool isStatic) {
+bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, TransformType type) {
 	std::vector<Transform>::const_iterator it;
 	for (it = transforms.begin(); it != transforms.end(); ++it) {
-		sendTransform(*it, isStatic);
+		sendTransform(*it, type);
 	}
 	return true;
 }
@@ -116,10 +119,10 @@ void TransformCommRsb::publishCache() {
 	MetaData meta;
 	meta.setUserInfo("authority", authority);
 	map<string, shared_ptr<FrameTransform> >::iterator it;
-	for (it = sendCache.begin(); it != sendCache.end(); it++) {
+	for (it = sendCacheDynamic.begin(); it != sendCacheDynamic.end(); it++) {
 		EventPtr event(new Event());
 		event->setData(it->second);
-		event->setScope(Scope("/rct/transform/nonstatic"));
+		event->setScope(Scope("/rct/transform/dynamic"));
 		event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
 		event->setMetaData(meta);
 		rsbInformerTransform->publish(event);
@@ -163,7 +166,7 @@ void TransformCommRsb::frameTransformCallback(EventPtr event) {
 	boost::shared_ptr<FrameTransform> t = boost::static_pointer_cast<FrameTransform>(event->getData());
 	string authority = event->getMetaData().getUserInfo("authority");
 	vector<string> scopeComponents = event->getScope().getComponents();
-	vector<string>::iterator it = find(scopeComponents.begin(), scopeComponents.end(), "nonstatic");
+	vector<string>::iterator it = find(scopeComponents.begin(), scopeComponents.end(), "dynamic");
 	bool isStatic = it == scopeComponents.end();
 
 	Transform transform;
@@ -242,7 +245,7 @@ void TransformCommRsb::printContents(std::ostream& stream) const {
 	stream << "authority = " << authority;
 	stream << ", communication = rsb";
 	stream << ", #listeners = " << listeners.size();
-	stream << ", #cache = " << sendCache.size();
+	stream << ", #cache = " << sendCacheDynamic.size();
 }
 
 string TransformCommRsb::getAuthorityName() const {

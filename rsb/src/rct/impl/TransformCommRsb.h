@@ -34,8 +34,8 @@ public:
 	 * \param is_static Record this transform as a static transform.  It will be good across all time.  (This cannot be changed after the first call.)
 	 * \return True unless an error occured
 	 */
-	virtual bool sendTransform(const Transform& transform, bool isStatic);
-	virtual bool sendTransform(const std::vector<Transform>& transforms, bool isStatic);
+	virtual bool sendTransform(const Transform& transform, TransformType type);
+	virtual bool sendTransform(const std::vector<Transform>& transforms, TransformType type);
 
 	virtual void addTransformListener(const TransformListener::Ptr& listener);
 	virtual void addTransformListener(const std::vector<TransformListener::Ptr>& listeners);
@@ -55,7 +55,7 @@ private:
 	rsb::Informer<void>::Ptr rsbInformerTrigger;
 	std::vector<TransformListener::Ptr> listeners;
 	boost::mutex mutex;
-	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCache;
+	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCacheDynamic;
 	std::map<std::string, boost::shared_ptr<FrameTransform> > sendCacheStatic;
 	std::string authority;
 
