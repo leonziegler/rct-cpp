@@ -22,15 +22,56 @@ using namespace boost;
 namespace rct {
 
 log4cxx::LoggerPtr TransformCommRsb::logger = log4cxx::Logger::getLogger("rct.rsb.TransformComRsb");
+string TransformCommRsb::defaultScopeSync = "/rct/sync";
+string TransformCommRsb::defaultScopeTransforms = "/rct/transform";
+string TransformCommRsb::defaultScopeSufficStatic = "/static";
+string TransformCommRsb::defaultScopeSuffixDynamic = "/dynamic";
+string TransformCommRsb::defaultUserKeyAuthority = "authority";
 
 TransformCommRsb::TransformCommRsb(const string &authority, const TransformListener::Ptr& l) :
-		authority(authority) {
+		authority(authority),
+		scopeSync(defaultScopeSync),
+		scopeTransforms(defaultScopeTransforms),
+		scopeSuffixStatic(defaultScopeSufficStatic),
+		scopeSuffixDynamic(defaultScopeSuffixDynamic),
+		userKeyAuthority(defaultUserKeyAuthority) {
 
 	addTransformListener(l);
 }
 
 TransformCommRsb::TransformCommRsb(const string &authority, const vector<TransformListener::Ptr>& l) :
-		authority(authority) {
+		authority(authority),
+		scopeSync(defaultScopeSync),
+		scopeTransforms(defaultScopeTransforms),
+		scopeSuffixStatic(defaultScopeSufficStatic),
+		scopeSuffixDynamic(defaultScopeSuffixDynamic),
+		userKeyAuthority(defaultUserKeyAuthority) {
+
+	addTransformListener(l);
+}
+
+TransformCommRsb::TransformCommRsb(const string &authority, const TransformListener::Ptr& l,
+		std::string scopeSync, std::string scopeTransforms, std::string scopeSuffixStatic,
+		std::string scopeSuffixDynamic, std::string userKeyAuthority) :
+		authority(authority),
+		scopeSync(scopeSync),
+		scopeTransforms(scopeTransforms),
+		scopeSuffixStatic(scopeSuffixStatic),
+		scopeSuffixDynamic(scopeSuffixDynamic),
+		userKeyAuthority(userKeyAuthority) {
+
+	addTransformListener(l);
+}
+
+TransformCommRsb::TransformCommRsb(const string &authority, const vector<TransformListener::Ptr>& l,
+		std::string scopeSync, std::string scopeTransforms, std::string scopeSuffixStatic,
+		std::string scopeSuffixDynamic, std::string userKeyAuthority) :
+		authority(authority),
+		scopeSync(scopeSync),
+		scopeTransforms(scopeTransforms),
+		scopeSuffixStatic(scopeSuffixStatic),
+		scopeSuffixDynamic(scopeSuffixDynamic),
+		userKeyAuthority(userKeyAuthority) {
 
 	addTransformListener(l);
 }
@@ -47,10 +88,10 @@ void TransformCommRsb::init(const TransformerConfig &conf) {
 
 	Factory &factory = rsb::getFactory();
 
-	rsbListenerTransform = factory.createListener("/rct/transform");
-	rsbListenerSync = factory.createListener("/rct/sync");
-	rsbInformerTransform = factory.createInformer<FrameTransform>("/rct/transform");
-	rsbInformerSync = factory.createInformer<void>("/rct/sync");
+	rsbListenerTransform = factory.createListener(scopeTransforms);
+	rsbListenerSync = factory.createListener(scopeSync);
+	rsbInformerTransform = factory.createInformer<FrameTransform>(scopeTransforms);
+	rsbInformerSync = factory.createInformer<void>(scopeSync);
 
 	EventFunction f0(bind(&TransformCommRsb::frameTransformCallback, this, _1));
 	transformHandler = HandlerPtr(new EventFunctionHandler(f0));
@@ -88,30 +129,30 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 
 	boost::shared_ptr<FrameTransform> t(new FrameTransform());
 	convertTransformToPb(transform, t);
-	string cacheKey = transform.getFrameParent() + transform.getFrameChild();
+	const string cacheKey = transform.getFrameParent() + transform.getFrameChild();
 
 	LOG4CXX_TRACE(logger, "sendTransform()");
 
 	MetaData meta;
 	if (transform.getAuthority() == "") {
-		meta.setUserInfo("authority", authority);
+		meta.setUserInfo(userKeyAuthority, authority);
 	} else {
-		meta.setUserInfo("authority", transform.getAuthority());
+		meta.setUserInfo(userKeyAuthority, transform.getAuthority());
 	}
 
 	boost::mutex::scoped_lock(mutex);
 	LOG4CXX_TRACE(logger,
 			"Publishing transform from " << rsbInformerTransform->getId().getIdAsString());
-	EventPtr event(new Event());
+	EventPtr event(rsbInformerTransform->createEvent());
 	event->setData(t);
-	event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
 	event->setMetaData(meta);
+
 	if (type == STATIC) {
 		sendCacheStatic[cacheKey] = make_pair(t, meta);
-		event->setScope(Scope("/rct/transform/static"));
+		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic)));
 	} else if (type == DYNAMIC) {
 		sendCacheDynamic[cacheKey] = make_pair(t, meta);
-		event->setScope(Scope("/rct/transform/dynamic"));
+		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixDynamic)));
 	} else {
 		LOG4CXX_ERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
 		return false;
@@ -131,20 +172,19 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, T
 
 void TransformCommRsb::publishCache() {
 	LOG4CXX_TRACE(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
+
 	map<string, std::pair<boost::shared_ptr<FrameTransform>, MetaData> >::iterator it;
 	for (it = sendCacheDynamic.begin(); it != sendCacheDynamic.end(); it++) {
-		EventPtr event(new Event());
+		EventPtr event(rsbInformerTransform->createEvent());
 		event->setData(it->second.first);
-		event->setScope(Scope("/rct/transform/dynamic"));
-		event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
+		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixDynamic)));
 		event->setMetaData(it->second.second);
 		rsbInformerTransform->publish(event);
 	}
 	for (it = sendCacheStatic.begin(); it != sendCacheStatic.end(); it++) {
-		EventPtr event(new Event());
+		EventPtr event(rsbInformerTransform->createEvent());
 		event->setData(it->second.first);
-		event->setScope(Scope("/rct/transform/static"));
-		event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
+		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic)));
 		event->setMetaData(it->second.second);
 		rsbInformerTransform->publish(event);
 	}
@@ -177,9 +217,10 @@ void TransformCommRsb::frameTransformCallback(EventPtr event) {
 
 	boost::shared_ptr<FrameTransform> t = boost::static_pointer_cast<FrameTransform>(
 			event->getData());
-	string authority = event->getMetaData().getUserInfo("authority");
+	string authority = event->getMetaData().getUserInfo(userKeyAuthority);
 	vector<string> scopeComponents = event->getScope().getComponents();
-	vector<string>::iterator it = find(scopeComponents.begin(), scopeComponents.end(), "dynamic");
+	vector<string>::iterator it = find(scopeComponents.begin(), scopeComponents.end(),
+			scopeSuffixDynamic);
 	bool isStatic = it == scopeComponents.end();
 
 	Transform transform;

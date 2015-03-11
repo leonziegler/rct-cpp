@@ -22,7 +22,15 @@ class TransformCommRsb: public TransformCommunicator {
 public:
 	typedef boost::shared_ptr<TransformCommRsb> Ptr;
 	TransformCommRsb(const std::string &authority, const TransformListener::Ptr& listener);
-	TransformCommRsb(const std::string &authority, const std::vector<TransformListener::Ptr>& listeners);
+	TransformCommRsb(const std::string &authority,
+			const std::vector<TransformListener::Ptr>& listeners);
+	TransformCommRsb(const std::string &authority, const TransformListener::Ptr& listener,
+			std::string scopeSync, std::string scopeTransforms, std::string scopeSuffixStatic,
+			std::string scopeSuffixDynamic, std::string userKeyAuthority);
+	TransformCommRsb(const std::string &authority,
+			const std::vector<TransformListener::Ptr>& listeners, std::string scopeSync,
+			std::string scopeTransforms, std::string scopeSuffixStatic,
+			std::string scopeSuffixDynamic, std::string userKeyAuthority);
 	virtual ~TransformCommRsb();
 
 	virtual void init(const TransformerConfig &conf);
@@ -42,8 +50,10 @@ public:
 	virtual void addTransformListener(const std::vector<TransformListener::Ptr>& listeners);
 	virtual void removeTransformListener(const TransformListener::Ptr& listener);
 
-	static void convertTransformToPb(const Transform& transform, boost::shared_ptr<FrameTransform> &t);
-	static void convertPbToTransform(const boost::shared_ptr<FrameTransform> &t, Transform& transform);
+	static void convertTransformToPb(const Transform& transform,
+			boost::shared_ptr<FrameTransform> &t);
+	static void convertPbToTransform(const boost::shared_ptr<FrameTransform> &t,
+			Transform& transform);
 
 	void printContents(std::ostream& stream) const;
 
@@ -61,11 +71,21 @@ private:
 	std::string authority;
 	rsb::HandlerPtr transformHandler;
 	rsb::HandlerPtr syncHandler;
+	std::string scopeSync;
+	std::string scopeTransforms;
+	std::string scopeSuffixStatic;
+	std::string scopeSuffixDynamic;
+	std::string userKeyAuthority;
 
 	void frameTransformCallback(rsb::EventPtr t);
 	void triggerCallback(rsb::EventPtr t);
 	void publishCache();
 
+	static std::string defaultScopeSync;
+	static std::string defaultScopeTransforms;
+	static std::string defaultScopeSufficStatic;
+	static std::string defaultScopeSuffixDynamic;
+	static std::string defaultUserKeyAuthority;
 	static log4cxx::LoggerPtr logger;
 };
 }  // namespace rct

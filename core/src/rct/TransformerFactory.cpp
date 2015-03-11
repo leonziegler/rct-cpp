@@ -84,6 +84,7 @@ Transformer::Ptr TransformerFactory::createTransformer(const std::string &name, 
 		throw TransformerFactoryException(string("Can not generate communicator " + TransformerConfig::typeToString(config.getCommType())));
 	}
 
+	//todo
 	comms[0]->init(config);
 	Transformer::Ptr transformer(new Transformer(core, comms[0], config));
 	return transformer;
