@@ -42,15 +42,15 @@ TransformCommRos::TransformCommRos(const string &name,
 
 TransformCommRos::~TransformCommRos() {
 	running = false;
+	delete tfListener;
 }
 
 void TransformCommRos::init(const TransformerConfig &conf) {
 
 	LOG4CXX_TRACE(logger, "init()");
 
-	tf2_ros::TransformCallback cb(
-			boost::bind(&TransformCommRos::transformCallback, this, _1, _2, _3, _4, _5));
-	tfListener = new tf2_ros::TransformListener(tfBuffer, cb, false);
+	TransformCallbackRos cb(boost::bind(&TransformCommRos::transformCallback, this, _1, _2, _3));
+	tfListener = new TransformListenerRos(cb);
 }
 void TransformCommRos::shutdown() {
 	listeners.clear();
@@ -99,7 +99,8 @@ bool TransformCommRos::sendTransformStaticLegacy(const geometry_msgs::TransformS
 		delete legacyThreadsCache[cacheKey];
 	}
 
-	legacyThreadsCache[cacheKey] = new boost::thread(boost::bind(&TransformCommRos::transformLegacyPublish, this, transform, interval));
+	legacyThreadsCache[cacheKey] = new boost::thread(
+			boost::bind(&TransformCommRos::transformLegacyPublish, this, transform, interval));
 
 	return true;
 }
@@ -143,22 +144,21 @@ void TransformCommRos::removeTransformListener(const TransformListener::Ptr& lis
 	}
 }
 
-void TransformCommRos::transformCallback(const std::string& target_frame,
-		const std::string& source_frame, ros::Time time, const std::string & authority,
-		bool is_static) {
+void TransformCommRos::transformCallback(const geometry_msgs::TransformStamped rosTransform,
+		const std::string & authority, bool is_static) {
 
 	if (authority == ros::this_node::getName()) {
-		LOG4CXX_TRACE(logger, "Received transform from myself. Ignore. (authority: " << authority << ")");
+		LOG4CXX_TRACE(logger,
+				"Received transform from myself. Ignore. (authority: " << authority << ")");
 		return;
 	}
 
 	string authorityClean = authority;
-	boost::algorithm::replace_all(authorityClean,"/","");
+	boost::algorithm::replace_all(authorityClean, "/", "");
 
 	LOG4CXX_TRACE(logger,
-			"Got transform from ROS. tgt:" << target_frame << " src:" << source_frame << " auth:" << authorityClean);
-	geometry_msgs::TransformStamped rosTransform = tfBuffer.lookupTransform(target_frame,
-			source_frame, time);
+			"Got transform from ROS. parent:" << rosTransform.header.frame_id << " child:" << rosTransform.child_frame_id << " auth:" << authorityClean);
+
 	vector<TransformListener::Ptr>::iterator it;
 	boost::mutex::scoped_lock(mutex);
 	Transform t;
@@ -179,9 +179,9 @@ void TransformCommRos::transformLegacyPublish(geometry_msgs::TransformStamped t,
 			t.header.stamp = ros::Time::now() + sleeper;
 			tfBroadcaster.sendTransform(t);
 			sleeper.sleep();
-		} catch(std::exception &e) {
+		} catch (std::exception &e) {
 			LOG4CXX_ERROR(logger, "Cannot send transform. Reason: " << e.what());
-			usleep(100*1000);
+			usleep(100 * 1000);
 		}
 	}
 }

@@ -10,10 +10,10 @@
 #include <rct/impl/TransformCommunicator.h>
 #include <rct/rctConfig.h>
 
-#include "transform_listener.h"
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/buffer.h>
+#include "TransformListenerRos.h"
 
 namespace rct {
 
@@ -39,8 +39,7 @@ public:
 	virtual std::string getAuthorityName() const;
 private:
 
-	tf2_ros::Buffer tfBuffer;
-	tf2_ros::TransformListener* tfListener;
+	TransformListenerRos* tfListener;
 	tf2_ros::TransformBroadcaster tfBroadcaster;
 	tf2_ros::StaticTransformBroadcaster tfBroadcasterStatic;
 
@@ -55,7 +54,7 @@ private:
 
 	static log4cxx::LoggerPtr logger;
 	bool sendTransformStaticLegacy(const geometry_msgs::TransformStamped& transform);
-	void transformCallback(const std::string& target_frame, const std::string& source_frame, ros::Time time, const std::string & authority, bool is_static);
+	void transformCallback(const geometry_msgs::TransformStamped transform, const std::string & authority, bool is_static);
 	void transformLegacyPublish(geometry_msgs::TransformStamped t, ros::Duration sleeper);
 };
 
