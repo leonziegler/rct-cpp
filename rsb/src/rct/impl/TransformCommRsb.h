@@ -14,7 +14,7 @@
 #include <boost/shared_ptr.hpp>
 #include <log4cxx/logger.h>
 
-#include "FrameTransform.pb.h"
+#include <rct/FrameTransform.pb.h>
 
 namespace rct {
 

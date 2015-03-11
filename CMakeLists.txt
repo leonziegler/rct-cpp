@@ -7,6 +7,7 @@ project("RoboticsCoordinateTransform")
 set(RCT_NAME             rct)
 set(RCT_NAME_RSB         rctrsb)
 set(RCT_NAME_ROS         rctros)
+set(RCT_NAME_PROTO       rctproto)
 set(RCT_VERSION_MAJOR    "1")
 set(RCT_VERSION_MINOR    "0")
 set(RCT_VERSION_REVISION "0")
@@ -44,6 +45,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 # --- dependencies ---
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
+# must be done before rsc, because rsc module for finding eigen is broken!
+find_package(Eigen3 REQUIRED)
+include_directories(BEFORE SYSTEM  ${Eigen3_INCLUDE_DIRS})
+link_directories(${Eigen3_LIBRARY_DIRS})
+
 #rsc
 find_package(RSC 0.11 REQUIRED)
 message(STATUS "RSC version: ${RSC_VERSION}")
@@ -53,18 +60,25 @@ message(STATUS "RSC CMake module path: ${RSC_CMAKE_MODULE_PATH}")
 include_directories(BEFORE SYSTEM ${RSC_INCLUDE_DIRS})
 link_directories(${RSC_LIBRARY_DIRS})
 
-set(PROJECT_CMAKE_PATH "${CMAKE_INSTALL_PREFIX}/share/cmake/Modules")
-#set(CMAKE_MODULE_PATH ${PROJECT_CMAKE_PATH} ${CMAKE_MODULE_PATH} ${RSC_CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules )
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules )
+find_package(RSC-CMake 0.11 REQUIRED)
+list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_INSTALL_PREFIX}/share/cmake/Modules" ${RSC_CMAKE_MODULE_PATH})
+
 message(STATUS "Using CMake module path: ${CMAKE_MODULE_PATH}")
 
-find_package(Eigen3 REQUIRED)
-include_directories(BEFORE SYSTEM  ${Eigen3_INCLUDE_DIRS})
-link_directories(${Eigen3_LIBRARY_DIRS})
+find_package(ProtocolBuffers REQUIRED)
+if(NOT PROTOBUF_LIBRARY)
+    message(FATAL_ERROR "protobuf library not found")
+endif()
+if(NOT PROTOBUF_INCLUDE_DIR)
+    message(FATAL_ERROR "protobuf include dir not found")
+endif()
+if(NOT PROTOBUF_PROTOC_EXECUTABLE)
+    message(FATAL_ERROR "protoc executable not found")
+endif()
 
 find_package(Log4cxx REQUIRED)
-include_directories(BEFORE SYSTEM  ${Log4cxx_INCLUDE_DIRS})
-link_directories(${Log4cxx_LIBRARY_DIRS})
+include_directories(BEFORE SYSTEM  ${Log4cxx_INCLUDE_DIRS} ${LOG4CXX_INCLUDE_DIRS})
+link_directories(${Log4cxx_LIBRARY_DIRS} ${LOG4CXX_LIBRARY_DIRS})
 
 find_package(tf2 QUIET REQUIRED)
 include_directories(BEFORE SYSTEM  ${tf2_INCLUDE_DIRS})
@@ -95,12 +109,25 @@ find_package(Boost REQUIRED QUIET COMPONENTS thread program_options date_time)
 include_directories(${Boost_INCLUDE_DIRS})
 add_definitions(-DBOOST_LOG_DYN_LINK)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/core/src/rct/rctConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/rct/rctConfig.h)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+configure_file(${CMAKE_SOURCE_DIR}/core/src/rct/rctConfig.h.in ${CMAKE_BINARY_DIR}/rct/rctConfig.h)
 
-# --- build instructions ---
-add_subdirectory(core/src)
+PROTOBUF_GENERATE(CPP PROTO_CPP_SOURCES PROTO_CPP_HEADERS
+                      PROTOFILES ${CMAKE_SOURCE_DIR}/rsb/src/rct/proto/FrameTransform.proto
+                      PROTOROOT ${CMAKE_SOURCE_DIR}/rsb/src/rct/proto/
+                      INCLUDES ${RST_STABLE_PROTO_ROOT}
+                      OUTPATH ${CMAKE_BINARY_DIR}/rct/)
+
+include_directories(${CMAKE_BINARY_DIR})
+
+# --- build instructions proto ---
+ADD_LIBRARY(${RCT_NAME_PROTO} SHARED ${PROTO_CPP_SOURCES} ${PROTO_CPP_HEADERS})
+TARGET_LINK_LIBRARIES(${RCT_NAME_PROTO} ${RST_LIBRARIES})
+SET_TARGET_PROPERTIES(${RCT_NAME_PROTO} PROPERTIES VERSION ${RCT_VERSION} SOVERSION ${RCT_API_VERSION})
+INSTALL(TARGETS ${RCT_NAME_PROTO} LIBRARY DESTINATION ${LIBDIR})
+
+# --- build instructions modules ---
 add_subdirectory(rsb/src)
+add_subdirectory(core/src)
 add_subdirectory(ros/src)
 if(BUILD_EXAMPLES)
 	ADD_SUBDIRECTORY(examples/src)
