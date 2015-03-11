@@ -63,7 +63,7 @@ Transformer::Ptr TransformerFactory::createTransformer(const std::string &name, 
 	vector<TransformCommunicator::Ptr> comms;
 #ifdef RCT_HAVE_RSB
 	if (config.getCommType() == TransformerConfig::AUTO || config.getCommType() == TransformerConfig::RSB) {
-		TransformCommRsb::Ptr p(new TransformCommRsb(name, config.getCacheTime(), allListeners));
+		TransformCommRsb::Ptr p(new TransformCommRsb(name, allListeners));
 		comms.push_back(p);
 	}
 #endif
