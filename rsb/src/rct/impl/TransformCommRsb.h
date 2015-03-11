@@ -26,6 +26,7 @@ public:
 	virtual ~TransformCommRsb();
 
 	virtual void init(const TransformerConfig &conf);
+	virtual void shutdown();
 	virtual void requestSync();
 
 	/** \brief Add transform information to the rct data structure
@@ -58,6 +59,8 @@ private:
 	std::map<std::string, std::pair<boost::shared_ptr<FrameTransform>, rsb::MetaData> > sendCacheDynamic;
 	std::map<std::string, std::pair<boost::shared_ptr<FrameTransform>, rsb::MetaData> > sendCacheStatic;
 	std::string authority;
+	rsb::HandlerPtr transformHandler;
+	rsb::HandlerPtr triggerHandler;
 
 	void frameTransformCallback(rsb::EventPtr t);
 	void triggerCallback(rsb::EventPtr t);

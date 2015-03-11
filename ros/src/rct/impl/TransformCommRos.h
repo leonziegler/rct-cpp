@@ -8,23 +8,25 @@
 #pragma once
 
 #include <rct/impl/TransformCommunicator.h>
+#include <rct/rctConfig.h>
 
-#include <tf2_ros/buffer.h>
 #include "transform_listener.h"
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_ros/buffer.h>
 
 namespace rct {
 
 class TransformCommRos: public TransformCommunicator {
 public:
 	typedef boost::shared_ptr<TransformCommRos> Ptr;
-	TransformCommRos(const std::string &name, const boost::posix_time::time_duration& cacheTime);
-	TransformCommRos(const std::string &name, const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener);
-	TransformCommRos(const std::string &name, const boost::posix_time::time_duration& cacheTime, const std::vector<TransformListener::Ptr>& listener);
+	TransformCommRos(const std::string &name, const boost::posix_time::time_duration& cacheTime, bool legacyMode = false, long legacyIntervalMSec = 100);
+	TransformCommRos(const std::string &name, const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener, bool legacyMode = false, long legacyIntervalMSec = 100);
+	TransformCommRos(const std::string &name, const boost::posix_time::time_duration& cacheTime, const std::vector<TransformListener::Ptr>& listener, bool legacyMode = false, long legacyIntervalMSec = 100);
 	virtual ~TransformCommRos();
 
 	virtual void init(const TransformerConfig &conf);
+	virtual void shutdown();
 
 	virtual bool sendTransform(const Transform& transform, TransformType type);
 	virtual bool sendTransform(const std::vector<Transform>& transforms, TransformType type);
@@ -41,13 +43,20 @@ private:
 	tf2_ros::TransformListener* tfListener;
 	tf2_ros::TransformBroadcaster tfBroadcaster;
 	tf2_ros::StaticTransformBroadcaster tfBroadcasterStatic;
+
 	std::vector<TransformListener::Ptr> listeners;
 	boost::mutex mutex;
 	std::string name;
 
-	static log4cxx::LoggerPtr logger;
+	bool running;
+	bool legacyMode;
+	long legacyIntervalMSec;
+	std::map<std::string, boost::thread*> legacyThreadsCache;
 
+	static log4cxx::LoggerPtr logger;
+	bool sendTransformStaticLegacy(const geometry_msgs::TransformStamped& transform);
 	void transformCallback(const std::string& target_frame, const std::string& source_frame, ros::Time time, const std::string & authority, bool is_static);
+	void transformLegacyPublish(geometry_msgs::TransformStamped t, ros::Duration sleeper);
 };
 
 } /* namespace rct */

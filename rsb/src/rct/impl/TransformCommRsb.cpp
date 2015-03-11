@@ -21,7 +21,7 @@ using namespace boost;
 
 namespace rct {
 
-log4cxx::LoggerPtr TransformCommRsb::logger = log4cxx::Logger::getLogger("rcs.rsb.TransformComRsb");
+log4cxx::LoggerPtr TransformCommRsb::logger = log4cxx::Logger::getLogger("rct.rsb.TransformComRsb");
 
 TransformCommRsb::TransformCommRsb(
 		const string &authority, const boost::posix_time::time_duration& cacheTime,
@@ -41,6 +41,8 @@ TransformCommRsb::~TransformCommRsb() {
 }
 
 void TransformCommRsb::init(const TransformerConfig &conf) {
+
+	LOG4CXX_DEBUG(logger, "init()");
 	converter::ProtocolBufferConverter<FrameTransform>::Ptr converter0(
 			new rsb::converter::ProtocolBufferConverter<FrameTransform>());
 	converter::converterRepository<string>()->registerConverter(converter0);
@@ -53,13 +55,20 @@ void TransformCommRsb::init(const TransformerConfig &conf) {
 	rsbInformerTrigger = factory.createInformer<void>("/rct/trigger");
 
 	EventFunction f0(bind(&TransformCommRsb::frameTransformCallback, this, _1));
-	rsbListenerTransform->addHandler(HandlerPtr(new EventFunctionHandler(f0)));
+	transformHandler = HandlerPtr(new EventFunctionHandler(f0));
+	rsbListenerTransform->addHandler(transformHandler);
 
 	EventFunction f1(bind(&TransformCommRsb::triggerCallback, this, _1));
-	rsbListenerTrigger->addHandler(HandlerPtr(new EventFunctionHandler(f1)));
+	triggerHandler = HandlerPtr(new EventFunctionHandler(f1));
+	rsbListenerTrigger->addHandler(triggerHandler);
 
 	requestSync();
 
+}
+void TransformCommRsb::shutdown() {
+	listeners.clear();
+	rsbListenerTransform->removeHandler(transformHandler);
+	rsbListenerTransform->removeHandler(triggerHandler);
 }
 void TransformCommRsb::requestSync() {
 
@@ -82,7 +91,7 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 	convertTransformToPb(transform, t);
 	string cacheKey = transform.getFrameParent() + transform.getFrameChild();
 
-	LOG4CXX_DEBUG(logger, "sendTransform()");
+	LOG4CXX_TRACE(logger, "sendTransform()");
 
 	MetaData meta;
 	if (transform.getAuthority() == "") {
@@ -92,7 +101,7 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 	}
 
 	boost::mutex::scoped_lock(mutex);
-	LOG4CXX_DEBUG(logger, "Publishing transform from " << rsbInformerTransform->getId().getIdAsString());
+	LOG4CXX_TRACE(logger, "Publishing transform from " << rsbInformerTransform->getId().getIdAsString());
 	EventPtr event(new Event());
 	event->setData(t);
 	event->setType(rsc::runtime::typeName(typeid(FrameTransform)));
@@ -108,7 +117,7 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 		return false;
 	}
 	rsbInformerTransform->publish(event);
-	LOG4CXX_DEBUG(logger, "Publishing done");
+	LOG4CXX_TRACE(logger, "sendTransform() done");
 	return true;
 }
 
@@ -121,7 +130,7 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, T
 }
 
 void TransformCommRsb::publishCache() {
-	LOG4CXX_DEBUG(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
+	LOG4CXX_TRACE(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
 	map<string,  std::pair<boost::shared_ptr<FrameTransform>, MetaData> >::iterator it;
 	for (it = sendCacheDynamic.begin(); it != sendCacheDynamic.end(); it++) {
 		EventPtr event(new Event());
@@ -163,7 +172,7 @@ void TransformCommRsb::removeTransformListener(
 
 void TransformCommRsb::frameTransformCallback(EventPtr event) {
 	if (event->getMetaData().getSenderId() == rsbInformerTransform->getId()) {
-		LOG4CXX_DEBUG(logger, "Received transform from myself. Ignore. (id " << event->getMetaData().getSenderId().getIdAsString() << ")");
+		LOG4CXX_TRACE(logger, "Received transform from myself. Ignore. (id " << event->getMetaData().getSenderId().getIdAsString() << ")");
 		return;
 	}
 
@@ -190,7 +199,7 @@ void TransformCommRsb::frameTransformCallback(EventPtr event) {
 void TransformCommRsb::triggerCallback(EventPtr e) {
 
 	if (e->getMetaData().getSenderId() == rsbInformerTrigger->getId()) {
-		LOG4CXX_DEBUG(logger, "Got trigger from myself. Ignore. (id " << e->getMetaData().getSenderId().getIdAsString() << ")");
+		LOG4CXX_TRACE(logger, "Got trigger from myself. Ignore. (id " << e->getMetaData().getSenderId().getIdAsString() << ")");
 		return;
 	}
 

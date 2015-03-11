@@ -112,6 +112,7 @@ public:
 	void printContents(std::ostream& stream) const;
 	TransformerConfig getConfig() const;
 	std::string getAuthorityName() const;
+	void shutdown();
 private:
 
 	TransformCommunicator::Ptr comm;

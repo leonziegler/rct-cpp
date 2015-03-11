@@ -95,6 +95,9 @@ find_package(Boost REQUIRED QUIET COMPONENTS thread program_options date_time)
 include_directories(${Boost_INCLUDE_DIRS})
 add_definitions(-DBOOST_LOG_DYN_LINK)
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/core/src/rct/rctConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/rct/rctConfig.h)
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
 # --- build instructions ---
 add_subdirectory(core/src)
 add_subdirectory(rsb/src)

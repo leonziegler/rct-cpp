@@ -79,4 +79,8 @@ bool Transformer::canTransform(const std::string& target_frame,
 	return core->canTransform(target_frame, target_time, source_frame, source_time, fixed_frame, error_msg);
 }
 
+void Transformer::shutdown() {
+	comm->shutdown();
+}
+
 }  // namespace rct

@@ -70,8 +70,14 @@ TransformListener::~TransformListener()
 
 void TransformListener::init()
 {
-  message_subscriber_tf_ = node_.subscribe<tf2_msgs::TFMessage>("/tf", 100, boost::bind(&TransformListener::subscription_callback, this, _1)); ///\todo magic number
-  message_subscriber_tf_static_ = node_.subscribe<tf2_msgs::TFMessage>("/tf_static", 100, boost::bind(&TransformListener::static_subscription_callback, this, _1)); ///\todo magic number
+
+  ros::SubscribeOptions ops;
+  ops.template initByFullCallbackType<const ros::MessageEvent<tf2_msgs::TFMessage const>& >("/tf", 1000, boost::bind(&TransformListener::subscription_callback, this, _1));
+  message_subscriber_tf_ = node_.subscribe(ops);
+
+  ros::SubscribeOptions ops_static;
+  ops_static.template initByFullCallbackType<const ros::MessageEvent<tf2_msgs::TFMessage const>& >("/tf_static", 1000, boost::bind(&TransformListener::static_subscription_callback, this, _1));
+  message_subscriber_tf_static_ = node_.subscribe(ops_static);
 }
 
 void TransformListener::initWithThread()
@@ -109,19 +115,6 @@ void TransformListener::subscription_callback_impl(const ros::MessageEvent<tf2_m
   }
   last_update_ = now;
 
-  boost::shared_ptr<std::map<std::string, std::string> > headerPtr = msg_evt.getConnectionHeaderPtr();
-  if (headerPtr) {
-	  std::map<std::string, std::string> header = *headerPtr;
-	  std::map<std::string, std::string>::iterator it;
-	  ROS_WARN("HEADER:");
-	  for (it = header.begin(); it != header.end(); ++it) {
-		  ROS_WARN(it->first.c_str());
-		  ROS_WARN(it->second.c_str());
-	  }
-  } else {
-	  ROS_WARN("HEADER empty");
-  }
-
   const tf2_msgs::TFMessage& msg_in = *(msg_evt.getConstMessage());
   std::string authority = msg_evt.getPublisherName(); // lookup the authority
   for (unsigned int i = 0; i < msg_in.transforms.size(); i++)
@@ -140,8 +133,3 @@ void TransformListener::subscription_callback_impl(const ros::MessageEvent<tf2_m
     }
   }
 };
-
-
-
-
-

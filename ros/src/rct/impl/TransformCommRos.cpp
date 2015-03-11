@@ -8,6 +8,7 @@
 #include <rct/impl/TransformerTF2.h>
 #include <algorithm>
 #include <boost/bind.hpp>
+#include <boost/algorithm/string.hpp>
 #include <tf2/buffer_core.h>
 #include <log4cxx/logger.h>
 #include "TransformCommRos.h"
@@ -15,38 +16,51 @@ using namespace std;
 
 namespace rct {
 
-log4cxx::LoggerPtr TransformCommRos::logger = log4cxx::Logger::getLogger("rcs.ros.TransformCommRos");
+log4cxx::LoggerPtr TransformCommRos::logger = log4cxx::Logger::getLogger(
+		"rct.ros.TransformCommRos");
 
-TransformCommRos::TransformCommRos(
-		const string &name,
-		const boost::posix_time::time_duration& cacheTime):name(name) {
+TransformCommRos::TransformCommRos(const string &name,
+		const boost::posix_time::time_duration& cacheTime, bool legacyMode, long legacyIntervalMSec) :
+		name(name), legacyMode(legacyMode), running(true), legacyIntervalMSec(legacyIntervalMSec) {
 }
 
-TransformCommRos::TransformCommRos(
-		const string &name,
-		const boost::posix_time::time_duration& cacheTime,
-		const TransformListener::Ptr& listener):name(name) {
+TransformCommRos::TransformCommRos(const string &name,
+		const boost::posix_time::time_duration& cacheTime, const TransformListener::Ptr& listener,
+		bool legacyMode, long legacyIntervalMSec) :
+		name(name), legacyMode(legacyMode), running(true), legacyIntervalMSec(legacyIntervalMSec) {
 
 	addTransformListener(listener);
 }
 
-TransformCommRos::TransformCommRos(
-		const string &name,
-		const boost::posix_time::time_duration& cacheTime,
-		const vector<TransformListener::Ptr>& l):name(name) {
+TransformCommRos::TransformCommRos(const string &name,
+		const boost::posix_time::time_duration& cacheTime, const vector<TransformListener::Ptr>& l,
+		bool legacyMode, long legacyIntervalMSec) :
+		name(name), legacyMode(legacyMode), running(true), legacyIntervalMSec(legacyIntervalMSec) {
 
 	addTransformListener(l);
 }
 
 TransformCommRos::~TransformCommRos() {
+	running = false;
 }
 
 void TransformCommRos::init(const TransformerConfig &conf) {
 
 	LOG4CXX_TRACE(logger, "init()");
 
-	tf2_ros::TransformCallback cb(boost::bind(&TransformCommRos::transformCallback, this, _1, _2, _3, _4, _5));
-	tfListener = new tf2_ros::TransformListener(tfBuffer, cb);
+	tf2_ros::TransformCallback cb(
+			boost::bind(&TransformCommRos::transformCallback, this, _1, _2, _3, _4, _5));
+	tfListener = new tf2_ros::TransformListener(tfBuffer, cb, false);
+}
+void TransformCommRos::shutdown() {
+	listeners.clear();
+	std::map<std::string, boost::thread*>::iterator it;
+	for (it = legacyThreadsCache.begin(); it != legacyThreadsCache.end(); ++it) {
+		it->second->interrupt();
+		it->second->join();
+		delete it->second;
+	}
+	delete tfListener;
 }
 
 bool TransformCommRos::sendTransform(const Transform& transform, TransformType type) {
@@ -54,13 +68,39 @@ bool TransformCommRos::sendTransform(const Transform& transform, TransformType t
 	geometry_msgs::TransformStamped t;
 	TransformerTF2::convertTransformToTf(transform, t);
 	if (type == STATIC) {
-		tfBroadcasterStatic.sendTransform(t);
+		if (legacyMode) {
+			LOG4CXX_DEBUG(logger, "Send transform on legacy mode broadcaster " << t);
+			bool res = sendTransformStaticLegacy(t);
+			return res;
+		} else {
+			LOG4CXX_DEBUG(logger, "Send transform on static broadcaster " << t);
+			tfBroadcasterStatic.sendTransform(t);
+			return true;
+		}
 	} else if (type == DYNAMIC) {
+		LOG4CXX_DEBUG(logger, "Send transform on non-static broadcaster " << t);
 		tfBroadcaster.sendTransform(t);
+		return true;
 	} else {
 		LOG4CXX_ERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
 		return false;
 	}
+	return true;
+}
+
+bool TransformCommRos::sendTransformStaticLegacy(const geometry_msgs::TransformStamped& transform) {
+
+	string cacheKey = transform.header.frame_id + transform.child_frame_id;
+
+	ros::Duration interval(float(legacyIntervalMSec) / 1000.0);
+	if (legacyThreadsCache.count(cacheKey)) {
+		legacyThreadsCache[cacheKey]->interrupt();
+		legacyThreadsCache[cacheKey]->timed_join(boost::posix_time::seconds(2));
+		delete legacyThreadsCache[cacheKey];
+	}
+
+	legacyThreadsCache[cacheKey] = new boost::thread(boost::bind(&TransformCommRos::transformLegacyPublish, this, transform, interval));
+
 	return true;
 }
 
@@ -73,8 +113,10 @@ bool TransformCommRos::sendTransform(const vector<Transform>& transform, Transfo
 		ts.push_back(t);
 	}
 	if (type == STATIC) {
+		LOG4CXX_DEBUG(logger, "Send transform on static broadcaster " << ts);
 		tfBroadcasterStatic.sendTransform(ts);
 	} else if (type == DYNAMIC) {
+		LOG4CXX_DEBUG(logger, "Send transform on non-static broadcaster " << ts);
 		tfBroadcaster.sendTransform(ts);
 	} else {
 		LOG4CXX_ERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
@@ -94,26 +136,54 @@ void TransformCommRos::addTransformListener(const vector<TransformListener::Ptr>
 }
 void TransformCommRos::removeTransformListener(const TransformListener::Ptr& listener) {
 	boost::mutex::scoped_lock(mutex);
-	vector<TransformListener::Ptr>::iterator it = find(listeners.begin(), listeners.end(), listener);
+	vector<TransformListener::Ptr>::iterator it = find(listeners.begin(), listeners.end(),
+			listener);
 	if (it != listeners.end()) {
 		listeners.erase(it);
 	}
 }
 
-void TransformCommRos::transformCallback(const std::string& target_frame, const std::string& source_frame, ros::Time time, const std::string & authority, bool is_static) {
-	LOG4CXX_DEBUG(logger, "Got transform from ROS. tgt:" << target_frame << " src:" << source_frame << " auth:" << authority);
-	geometry_msgs::TransformStamped rosTransform = tfBuffer.lookupTransform(target_frame, source_frame, time);
+void TransformCommRos::transformCallback(const std::string& target_frame,
+		const std::string& source_frame, ros::Time time, const std::string & authority,
+		bool is_static) {
+
+	if (authority == ros::this_node::getName()) {
+		LOG4CXX_TRACE(logger, "Received transform from myself. Ignore. (authority: " << authority << ")");
+		return;
+	}
+
+	string authorityClean = authority;
+	boost::algorithm::replace_all(authorityClean,"/","");
+
+	LOG4CXX_TRACE(logger,
+			"Got transform from ROS. tgt:" << target_frame << " src:" << source_frame << " auth:" << authorityClean);
+	geometry_msgs::TransformStamped rosTransform = tfBuffer.lookupTransform(target_frame,
+			source_frame, time);
 	vector<TransformListener::Ptr>::iterator it;
 	boost::mutex::scoped_lock(mutex);
 	Transform t;
 	TransformerTF2::convertTfToTransform(rosTransform, t);
-	t.setAuthority(authority);
+	t.setAuthority(authorityClean);
 	LOG4CXX_DEBUG(logger, "Received transform: " << t);
 	for (it = listeners.begin(); it != listeners.end(); ++it) {
 		TransformListener::Ptr l = *it;
 		l->newTransformAvailable(t, is_static);
 	}
 	LOG4CXX_TRACE(logger, "Notification done");
+}
+
+void TransformCommRos::transformLegacyPublish(geometry_msgs::TransformStamped t,
+		ros::Duration sleeper) {
+	while (running && !boost::this_thread::interruption_requested()) {
+		try {
+			t.header.stamp = ros::Time::now() + sleeper;
+			tfBroadcaster.sendTransform(t);
+			sleeper.sleep();
+		} catch(std::exception &e) {
+			LOG4CXX_ERROR(logger, "Cannot send transform. Reason: " << e.what());
+			usleep(100*1000);
+		}
+	}
 }
 
 std::string TransformCommRos::getAuthorityName() const {
