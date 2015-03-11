@@ -21,7 +21,7 @@ using namespace boost;
 
 namespace rct {
 
-log4cxx::LoggerPtr TransformCommRsb::logger = log4cxx::Logger::getLogger("rct.rsb.TransformComRsb");
+rsc::logging::LoggerPtr TransformCommRsb::logger = rsc::logging::Logger::getLogger("rct.rsb.TransformComRsb");
 string TransformCommRsb::defaultScopeSync = "/rct/sync";
 string TransformCommRsb::defaultScopeTransforms = "/rct/transform";
 string TransformCommRsb::defaultScopeSufficStatic = "/static";
@@ -90,13 +90,13 @@ TransformCommRsb::~TransformCommRsb() {
 
 void TransformCommRsb::init(const TransformerConfig &conf) {
 
-	LOG4CXX_DEBUG(logger, "init()");
+	RSCDEBUG(logger, "init()");
 	try {
 		converter::ProtocolBufferConverter<FrameTransform>::Ptr converter0(
 				new rsb::converter::ProtocolBufferConverter<FrameTransform>());
 		converter::converterRepository<string>()->registerConverter(converter0);
 	} catch (std::invalid_argument &e) {
-		LOG4CXX_TRACE(logger, "Converter already present");
+		RSCTRACE(logger, "Converter already present");
 	}
 
 	Factory &factory = rsb::getFactory();
@@ -128,7 +128,7 @@ void TransformCommRsb::requestSync() {
 		throw std::runtime_error("communicator was not initialized!");
 	}
 
-	LOG4CXX_DEBUG(logger,
+	RSCDEBUG(logger,
 			"Sending sync request trigger from id " << rsbInformerSync->getId().getIdAsString());
 
 	// trigger other instances to send transforms
@@ -144,7 +144,7 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 	convertTransformToPb(transform, t);
 	const string cacheKey = transform.getFrameParent() + transform.getFrameChild();
 
-	LOG4CXX_TRACE(logger, "sendTransform()");
+	RSCTRACE(logger, "sendTransform()");
 
 	MetaData meta;
 	if (transform.getAuthority() == "") {
@@ -154,7 +154,7 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 	}
 
 	boost::mutex::scoped_lock(mutex);
-	LOG4CXX_TRACE(logger,
+	RSCTRACE(logger,
 			"Publishing transform from " << rsbInformerTransform->getId().getIdAsString());
 	EventPtr event(rsbInformerTransform->createEvent());
 	event->setData(t);
@@ -167,11 +167,11 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 		sendCacheDynamic[cacheKey] = make_pair(t, meta);
 		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixDynamic)));
 	} else {
-		LOG4CXX_ERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
+		RSCERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
 		return false;
 	}
 	rsbInformerTransform->publish(event);
-	LOG4CXX_TRACE(logger, "sendTransform() done");
+	RSCTRACE(logger, "sendTransform() done");
 	return true;
 }
 
@@ -184,7 +184,7 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, T
 }
 
 void TransformCommRsb::publishCache() {
-	LOG4CXX_TRACE(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
+	RSCTRACE(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
 
 	map<string, std::pair<boost::shared_ptr<FrameTransform>, MetaData> >::iterator it;
 	for (it = sendCacheDynamic.begin(); it != sendCacheDynamic.end(); it++) {
@@ -223,7 +223,7 @@ void TransformCommRsb::removeTransformListener(const TransformListener::Ptr& l) 
 
 void TransformCommRsb::frameTransformCallback(EventPtr event) {
 	if (event->getMetaData().getSenderId() == rsbInformerTransform->getId()) {
-		LOG4CXX_TRACE(logger,
+		RSCTRACE(logger,
 				"Received transform from myself. Ignore. (id " << event->getMetaData().getSenderId().getIdAsString() << ")");
 		return;
 	}
@@ -239,8 +239,8 @@ void TransformCommRsb::frameTransformCallback(EventPtr event) {
 	Transform transform;
 	convertPbToTransform(t, transform);
 	transform.setAuthority(authority);
-	LOG4CXX_DEBUG(logger, "Received transform from " << authority);
-	LOG4CXX_TRACE(logger, "Received transform: " << transform);
+	RSCDEBUG(logger, "Received transform from " << authority);
+	RSCTRACE(logger, "Received transform: " << transform);
 
 	boost::mutex::scoped_lock(mutex);
 	vector<TransformListener::Ptr>::iterator it0;
@@ -253,7 +253,7 @@ void TransformCommRsb::frameTransformCallback(EventPtr event) {
 void TransformCommRsb::triggerCallback(EventPtr e) {
 
 	if (e->getMetaData().getSenderId() == rsbInformerSync->getId()) {
-		LOG4CXX_TRACE(logger,
+		RSCTRACE(logger,
 				"Got sync request from myself. Ignore. (id " << e->getMetaData().getSenderId().getIdAsString() << ")");
 		return;
 	}

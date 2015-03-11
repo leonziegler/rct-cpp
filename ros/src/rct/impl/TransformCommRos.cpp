@@ -10,13 +10,13 @@
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <tf2/buffer_core.h>
-#include <log4cxx/logger.h>
+#include <rsc/logging/Logger.h>
 #include "TransformCommRos.h"
 using namespace std;
 
 namespace rct {
 
-log4cxx::LoggerPtr TransformCommRos::logger = log4cxx::Logger::getLogger(
+rsc::logging::LoggerPtr TransformCommRos::logger = rsc::logging::Logger::getLogger(
 		"rct.ros.TransformCommRos");
 
 TransformCommRos::TransformCommRos(const string &name,
@@ -47,7 +47,7 @@ TransformCommRos::~TransformCommRos() {
 
 void TransformCommRos::init(const TransformerConfig &conf) {
 
-	LOG4CXX_TRACE(logger, "init()");
+	RSCTRACE(logger, "init()");
 
 	TransformCallbackRos cb(boost::bind(&TransformCommRos::transformCallback, this, _1, _2, _3));
 	tfListener = new TransformListenerRos(cb);
@@ -69,20 +69,20 @@ bool TransformCommRos::sendTransform(const Transform& transform, TransformType t
 	TransformerTF2::convertTransformToTf(transform, t);
 	if (type == STATIC) {
 		if (legacyMode) {
-			LOG4CXX_DEBUG(logger, "Send transform on legacy mode broadcaster " << t);
+			RSCDEBUG(logger, "Send transform on legacy mode broadcaster " << t);
 			bool res = sendTransformStaticLegacy(t);
 			return res;
 		} else {
-			LOG4CXX_DEBUG(logger, "Send transform on static broadcaster " << t);
+			RSCDEBUG(logger, "Send transform on static broadcaster " << t);
 			tfBroadcasterStatic.sendTransform(t);
 			return true;
 		}
 	} else if (type == DYNAMIC) {
-		LOG4CXX_DEBUG(logger, "Send transform on non-static broadcaster " << t);
+		RSCDEBUG(logger, "Send transform on non-static broadcaster " << t);
 		tfBroadcaster.sendTransform(t);
 		return true;
 	} else {
-		LOG4CXX_ERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
+		RSCERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
 		return false;
 	}
 	return true;
@@ -114,13 +114,13 @@ bool TransformCommRos::sendTransform(const vector<Transform>& transform, Transfo
 		ts.push_back(t);
 	}
 	if (type == STATIC) {
-		LOG4CXX_DEBUG(logger, "Send transform on static broadcaster " << ts);
+		RSCDEBUG(logger, "Send transform on static broadcaster " << ts);
 		tfBroadcasterStatic.sendTransform(ts);
 	} else if (type == DYNAMIC) {
-		LOG4CXX_DEBUG(logger, "Send transform on non-static broadcaster " << ts);
+		RSCDEBUG(logger, "Send transform on non-static broadcaster " << ts);
 		tfBroadcaster.sendTransform(ts);
 	} else {
-		LOG4CXX_ERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
+		RSCERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
 		return false;
 	}
 	return true;
@@ -148,7 +148,7 @@ void TransformCommRos::transformCallback(const geometry_msgs::TransformStamped r
 		const std::string & authority, bool is_static) {
 
 	if (authority == ros::this_node::getName()) {
-		LOG4CXX_TRACE(logger,
+		RSCTRACE(logger,
 				"Received transform from myself. Ignore. (authority: " << authority << ")");
 		return;
 	}
@@ -156,7 +156,7 @@ void TransformCommRos::transformCallback(const geometry_msgs::TransformStamped r
 	string authorityClean = authority;
 	boost::algorithm::replace_all(authorityClean, "/", "");
 
-	LOG4CXX_TRACE(logger,
+	RSCTRACE(logger,
 			"Got transform from ROS. parent:" << rosTransform.header.frame_id << " child:" << rosTransform.child_frame_id << " auth:" << authorityClean);
 
 	vector<TransformListener::Ptr>::iterator it;
@@ -164,12 +164,12 @@ void TransformCommRos::transformCallback(const geometry_msgs::TransformStamped r
 	Transform t;
 	TransformerTF2::convertTfToTransform(rosTransform, t);
 	t.setAuthority(authorityClean);
-	LOG4CXX_DEBUG(logger, "Received transform: " << t);
+	RSCDEBUG(logger, "Received transform: " << t);
 	for (it = listeners.begin(); it != listeners.end(); ++it) {
 		TransformListener::Ptr l = *it;
 		l->newTransformAvailable(t, is_static);
 	}
-	LOG4CXX_TRACE(logger, "Notification done");
+	RSCTRACE(logger, "Notification done");
 }
 
 void TransformCommRos::transformLegacyPublish(geometry_msgs::TransformStamped t,
@@ -180,7 +180,7 @@ void TransformCommRos::transformLegacyPublish(geometry_msgs::TransformStamped t,
 			tfBroadcaster.sendTransform(t);
 			sleeper.sleep();
 		} catch (std::exception &e) {
-			LOG4CXX_ERROR(logger, "Cannot send transform. Reason: " << e.what());
+			RSCERROR(logger, "Cannot send transform. Reason: " << e.what());
 			usleep(100 * 1000);
 		}
 	}

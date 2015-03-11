@@ -52,7 +52,7 @@ private:
 	long legacyIntervalMSec;
 	std::map<std::string, boost::thread*> legacyThreadsCache;
 
-	static log4cxx::LoggerPtr logger;
+	static rsc::logging::LoggerPtr logger;
 	bool sendTransformStaticLegacy(const geometry_msgs::TransformStamped& transform);
 	void transformCallback(const geometry_msgs::TransformStamped transform, const std::string & authority, bool is_static);
 	void transformLegacyPublish(geometry_msgs::TransformStamped t, ros::Duration sleeper);

@@ -16,7 +16,7 @@ using namespace tf2;
 
 namespace rct {
 
-log4cxx::LoggerPtr TransformerTF2::logger = log4cxx::Logger::getLogger("rct.core.TransformerTF2");
+rsc::logging::LoggerPtr TransformerTF2::logger = rsc::logging::Logger::getLogger("rct.core.TransformerTF2");
 
 TransformerTF2::TransformerTF2(const posix_time::time_duration& cacheTime) :
 		tfBuffer(ros::Duration().fromNSec(cacheTime.total_nanoseconds())) {
@@ -114,10 +114,10 @@ void TransformerTF2::tfRequestCallback(TransformableRequestHandle request_handle
         }
     }
     if (!result) {
-        LOG4CXX_DEBUG(this->logger, "Received uninteresting callback " << target_frame << " -> " << source_frame);
+        RSCDEBUG(this->logger, "Received uninteresting callback " << target_frame << " -> " << source_frame);
         return;
     }
-    LOG4CXX_DEBUG(this->logger, "Received reply callback " << target_frame << " -> " << source_frame);
+    RSCDEBUG(this->logger, "Received reply callback " << target_frame << " -> " << source_frame);
     if (tresult == TransformFailure) {
         result->setError("Transform Failure");
     } else {

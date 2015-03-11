@@ -9,8 +9,7 @@
 
 #include "TransformerCore.h"
 #include <tf2/buffer_core.h>
-#include <log4cxx/log4cxx.h>
-#include <log4cxx/logger.h>
+#include <rsc/logging/Logger.h>
 
 namespace rct {
 
@@ -136,7 +135,7 @@ private:
 	tf2::TransformableCallbackHandle tfCallbackHandle;
     boost::mutex inprogressMutex;
     std::map<tf2::TransformableRequestHandle, FuturePtr> inprogress;
-    static log4cxx::LoggerPtr logger;
+    static rsc::logging::LoggerPtr logger;
 
     void tfRequestCallback(tf2::TransformableRequestHandle request_handle, const std::string& target_frame, const std::string& source_frame,
                                    ros::Time time, tf2::TransformableResult result);

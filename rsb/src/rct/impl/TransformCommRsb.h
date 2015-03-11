@@ -12,7 +12,7 @@
 #include <rsb/Listener.h>
 #include <rsb/Informer.h>
 #include <boost/shared_ptr.hpp>
-#include <log4cxx/logger.h>
+#include <rsc/logging/Logger.h>
 
 #include <rct/FrameTransform.pb.h>
 
@@ -87,6 +87,6 @@ private:
 	static std::string defaultScopeSufficStatic;
 	static std::string defaultScopeSuffixDynamic;
 	static std::string defaultUserKeyAuthority;
-	static log4cxx::LoggerPtr logger;
+	static rsc::logging::LoggerPtr logger;
 };
 }  // namespace rct

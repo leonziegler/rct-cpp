@@ -76,10 +76,6 @@ if(NOT PROTOBUF_PROTOC_EXECUTABLE)
     message(FATAL_ERROR "protoc executable not found")
 endif()
 
-find_package(Log4cxx REQUIRED)
-include_directories(BEFORE SYSTEM  ${Log4cxx_INCLUDE_DIRS} ${LOG4CXX_INCLUDE_DIRS})
-link_directories(${Log4cxx_LIBRARY_DIRS} ${LOG4CXX_LIBRARY_DIRS})
-
 find_package(tf2 QUIET REQUIRED)
 include_directories(BEFORE SYSTEM  ${tf2_INCLUDE_DIRS})
 link_directories(${tf2_LIBRARY_DIRS})
