@@ -91,9 +91,13 @@ TransformCommRsb::~TransformCommRsb() {
 void TransformCommRsb::init(const TransformerConfig &conf) {
 
 	LOG4CXX_DEBUG(logger, "init()");
-	converter::ProtocolBufferConverter<FrameTransform>::Ptr converter0(
-			new rsb::converter::ProtocolBufferConverter<FrameTransform>());
-	converter::converterRepository<string>()->registerConverter(converter0);
+	try {
+		converter::ProtocolBufferConverter<FrameTransform>::Ptr converter0(
+				new rsb::converter::ProtocolBufferConverter<FrameTransform>());
+		converter::converterRepository<string>()->registerConverter(converter0);
+	} catch (std::invalid_argument &e) {
+		LOG4CXX_TRACE(logger, "Converter already present");
+	}
 
 	Factory &factory = rsb::getFactory();
 
