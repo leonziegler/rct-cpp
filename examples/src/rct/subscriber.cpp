@@ -10,13 +10,12 @@
 
 int main(int argc, char **argv) {
 
-	rct::Transformer::Ptr transformer = rct::getTransformerFactory().createTransformer(
-			"SubscriberExample");
+	rct::TransformReceiver::Ptr receiver = rct::getTransformerFactory().createTransformReceiver();
 
 	std::cout << "###\n### first lookup\n###" << std::endl;
 
 	try {
-		rct::Transform t = transformer->lookupTransform("A", "C",
+		rct::Transform t = receiver->lookupTransform("A", "C",
 				boost::posix_time::microsec_clock::universal_time());
 
 		std::cout << "Translation (x,y,z):\n" << t.getTranslation() << std::endl;
@@ -30,7 +29,7 @@ int main(int argc, char **argv) {
 	std::cout << "\n###\n### first request\n###" << std::endl;
 
 	try {
-		rct::Transformer::FuturePtr future = transformer->requestTransform("A", "C",
+		rct::TransformReceiver::FuturePtr future = receiver->requestTransform("A", "C",
 				boost::posix_time::microsec_clock::universal_time());
 
 		rct::Transform t = future->get(2.0);
@@ -46,7 +45,7 @@ int main(int argc, char **argv) {
 	std::cout << "\n###\n### second lookup\n###" << std::endl;
 
 	try {
-		rct::Transform t = transformer->lookupTransform("A", "C",
+		rct::Transform t = receiver->lookupTransform("A", "C",
 				boost::posix_time::microsec_clock::universal_time());
 
 		std::cout << "Translation (x,y,z):\n" << t.getTranslation() << std::endl;
@@ -64,7 +63,7 @@ int main(int argc, char **argv) {
 		usleep(20*1000);
 
 		// lookup at now minus 20 milliseconds
-		rct::Transform t = transformer->lookupTransform("A", "C",
+		rct::Transform t = receiver->lookupTransform("A", "C",
 				boost::posix_time::microsec_clock::universal_time() - boost::posix_time::time_duration(0, 0, 0, 20*1000));
 
 		std::cout << "Translation (x,y,z):\n" << t.getTranslation() << std::endl;

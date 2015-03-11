@@ -28,6 +28,15 @@ string TransformCommRsb::defaultScopeSufficStatic = "/static";
 string TransformCommRsb::defaultScopeSuffixDynamic = "/dynamic";
 string TransformCommRsb::defaultUserKeyAuthority = "authority";
 
+TransformCommRsb::TransformCommRsb(const string &authority) :
+		authority(authority),
+		scopeSync(defaultScopeSync),
+		scopeTransforms(defaultScopeTransforms),
+		scopeSuffixStatic(defaultScopeSufficStatic),
+		scopeSuffixDynamic(defaultScopeSuffixDynamic),
+		userKeyAuthority(defaultUserKeyAuthority) {
+}
+
 TransformCommRsb::TransformCommRsb(const string &authority, const TransformListener::Ptr& l) :
 		authority(authority),
 		scopeSync(defaultScopeSync),

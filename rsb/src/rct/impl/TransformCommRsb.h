@@ -21,6 +21,7 @@ namespace rct {
 class TransformCommRsb: public TransformCommunicator {
 public:
 	typedef boost::shared_ptr<TransformCommRsb> Ptr;
+	TransformCommRsb(const std::string &authority);
 	TransformCommRsb(const std::string &authority, const TransformListener::Ptr& listener);
 	TransformCommRsb(const std::string &authority,
 			const std::vector<TransformListener::Ptr>& listeners);

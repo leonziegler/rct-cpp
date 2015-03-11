@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
 	signal(SIGINT, int_handler);
 
 	// create the transformer object
-	rct::Transformer::Ptr transformer = rct::getTransformerFactory().createTransformer("ExamplePublisher");
+	rct::TransformPublisher::Ptr publisher = rct::getTransformerFactory().createTransformPublisher("ExamplePublisher");
 
 	// create a static transform
 	Eigen::Vector3d position(0.0, 1.0, 2.0);
@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 	rct::Transform staticTransform(affine, "A", "B", boost::posix_time::microsec_clock::universal_time());
 
 	// publish the static transform
-	transformer->sendTransform(staticTransform, rct::STATIC);
+	publisher->sendTransform(staticTransform, rct::STATIC);
 
 	double angle = 0;
 	while(enabled) {
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 		rct::Transform dynamicTransform(affine, "B", "C", boost::posix_time::microsec_clock::universal_time());
 
 		// publish the dynamic transform
-		transformer->sendTransform(dynamicTransform, rct::DYNAMIC);
+		publisher->sendTransform(dynamicTransform, rct::DYNAMIC);
 
 		usleep(20 * 1000); // 50hz
 	}

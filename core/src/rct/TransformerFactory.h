@@ -8,10 +8,11 @@
 #pragma once
 
 #include "impl/TransformerCore.h"
-#include "Transformer.h"
 #include "TransformerConfig.h"
 #include <rsc/patterns/Singleton.h>
 #include <exception>
+#include "TransformReceiver.h"
+#include "TransformPublisher.h"
 
 namespace rct {
 
@@ -36,9 +37,11 @@ class TransformerFactory: private rsc::patterns::Singleton<TransformerFactory> {
 public:
 	virtual ~TransformerFactory();
 
-	Transformer::Ptr createTransformer(const std::string &name, const TransformerConfig& cacheTime = TransformerConfig()) const;
-	Transformer::Ptr createTransformer(const std::string &name, const TransformListener::Ptr& listener, const TransformerConfig& cacheTime = TransformerConfig()) const;
-	Transformer::Ptr createTransformer(const std::string &name, const std::vector<TransformListener::Ptr>& listeners, const TransformerConfig& cacheTime = TransformerConfig()) const;
+	TransformReceiver::Ptr createTransformReceiver(const TransformerConfig& cacheTime = TransformerConfig()) const;
+	TransformReceiver::Ptr createTransformReceiver(const TransformListener::Ptr& listener, const TransformerConfig& cacheTime = TransformerConfig()) const;
+	TransformReceiver::Ptr createTransformReceiver(const std::vector<TransformListener::Ptr>& listeners, const TransformerConfig& cacheTime = TransformerConfig()) const;
+
+	TransformPublisher::Ptr createTransformPublisher(const std::string &name, const TransformerConfig& cacheTime = TransformerConfig()) const;
 
 	friend class rsc::patterns::Singleton<TransformerFactory>;
 private:
