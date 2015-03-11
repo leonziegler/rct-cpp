@@ -23,6 +23,7 @@ class TransformerCore: public TransformListener, public virtual rsc::runtime::Pr
 		public boost::noncopyable {
 public:
 	typedef boost::shared_ptr<TransformerCore> Ptr;
+	typedef boost::shared_ptr<const TransformerCore> ConstPtr;
     typedef rsc::threading::Future<Transform> FutureType;
     typedef boost::shared_ptr<FutureType> FuturePtr;
 
