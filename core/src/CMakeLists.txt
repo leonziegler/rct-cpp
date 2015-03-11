@@ -16,4 +16,3 @@ INSTALL(DIRECTORY . DESTINATION ${INCLUDEDIR}
           PATTERN "./rct/*.h" 
           PATTERN "./rct/impl/*.h" 
 )
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/rct/rctConfig.h DESTINATION ${INCLUDEDIR}/rct)

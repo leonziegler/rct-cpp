@@ -54,9 +54,6 @@ link_directories(${Eigen3_LIBRARY_DIRS})
 #rsc
 find_package(RSC 0.11 REQUIRED)
 message(STATUS "RSC version: ${RSC_VERSION}")
-message(STATUS "RSC libraries: ${RSC_LIBRARIES}")
-message(STATUS "RSC runtime library dirs: ${RSC_RUNTIME_LIBRARY_DIRS}")
-message(STATUS "RSC CMake module path: ${RSC_CMAKE_MODULE_PATH}")
 include_directories(BEFORE SYSTEM ${RSC_INCLUDE_DIRS})
 link_directories(${RSC_LIBRARY_DIRS})
 
@@ -106,6 +103,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 add_definitions(-DBOOST_LOG_DYN_LINK)
 
 configure_file(${CMAKE_SOURCE_DIR}/core/src/rct/rctConfig.h.in ${CMAKE_BINARY_DIR}/rct/rctConfig.h)
+install(FILES ${CMAKE_BINARY_DIR}/rct/rctConfig.h DESTINATION ${INCLUDEDIR}/rct)
 
 PROTOBUF_GENERATE(CPP PROTO_CPP_SOURCES PROTO_CPP_HEADERS
                       PROTOFILES ${CMAKE_SOURCE_DIR}/rsb/src/rct/proto/FrameTransform.proto
@@ -120,6 +118,7 @@ ADD_LIBRARY(${RCT_NAME_PROTO} SHARED ${PROTO_CPP_SOURCES} ${PROTO_CPP_HEADERS})
 TARGET_LINK_LIBRARIES(${RCT_NAME_PROTO} ${RST_LIBRARIES})
 SET_TARGET_PROPERTIES(${RCT_NAME_PROTO} PROPERTIES VERSION ${RCT_VERSION} SOVERSION ${RCT_API_VERSION})
 INSTALL(TARGETS ${RCT_NAME_PROTO} LIBRARY DESTINATION ${LIBDIR})
+INSTALL(FILES ${PROTO_CPP_HEADERS} DESTINATION ${INCLUDEDIR}/rct)
 
 # --- build instructions modules ---
 add_subdirectory(rsb/src)
