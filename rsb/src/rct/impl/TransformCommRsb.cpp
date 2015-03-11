@@ -48,17 +48,17 @@ void TransformCommRsb::init(const TransformerConfig &conf) {
 	Factory &factory = rsb::getFactory();
 
 	rsbListenerTransform = factory.createListener("/rct/transform");
-	rsbListenerTrigger = factory.createListener("/rct/trigger");
+	rsbListenerSync = factory.createListener("/rct/sync");
 	rsbInformerTransform = factory.createInformer<FrameTransform>("/rct/transform");
-	rsbInformerTrigger = factory.createInformer<void>("/rct/trigger");
+	rsbInformerSync = factory.createInformer<void>("/rct/sync");
 
 	EventFunction f0(bind(&TransformCommRsb::frameTransformCallback, this, _1));
 	transformHandler = HandlerPtr(new EventFunctionHandler(f0));
 	rsbListenerTransform->addHandler(transformHandler);
 
 	EventFunction f1(bind(&TransformCommRsb::triggerCallback, this, _1));
-	triggerHandler = HandlerPtr(new EventFunctionHandler(f1));
-	rsbListenerTrigger->addHandler(triggerHandler);
+	syncHandler = HandlerPtr(new EventFunctionHandler(f1));
+	rsbListenerSync->addHandler(syncHandler);
 
 	requestSync();
 
@@ -66,19 +66,19 @@ void TransformCommRsb::init(const TransformerConfig &conf) {
 void TransformCommRsb::shutdown() {
 	listeners.clear();
 	rsbListenerTransform->removeHandler(transformHandler);
-	rsbListenerTransform->removeHandler(triggerHandler);
+	rsbListenerTransform->removeHandler(syncHandler);
 }
 void TransformCommRsb::requestSync() {
 
-	if (!rsbInformerTrigger) {
+	if (!rsbInformerSync) {
 		throw std::runtime_error("communicator was not initialized!");
 	}
 
 	LOG4CXX_DEBUG(logger,
-			"Sending sync request trigger from id " << rsbInformerTrigger->getId().getIdAsString());
+			"Sending sync request trigger from id " << rsbInformerSync->getId().getIdAsString());
 
 	// trigger other instances to send transforms
-	rsbInformerTrigger->publish(shared_ptr<void>());
+	rsbInformerSync->publish(shared_ptr<void>());
 }
 
 bool TransformCommRsb::sendTransform(const Transform& transform, TransformType type) {
@@ -198,9 +198,9 @@ void TransformCommRsb::frameTransformCallback(EventPtr event) {
 
 void TransformCommRsb::triggerCallback(EventPtr e) {
 
-	if (e->getMetaData().getSenderId() == rsbInformerTrigger->getId()) {
+	if (e->getMetaData().getSenderId() == rsbInformerSync->getId()) {
 		LOG4CXX_TRACE(logger,
-				"Got trigger from myself. Ignore. (id " << e->getMetaData().getSenderId().getIdAsString() << ")");
+				"Got sync request from myself. Ignore. (id " << e->getMetaData().getSenderId().getIdAsString() << ")");
 		return;
 	}
 
