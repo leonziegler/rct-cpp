@@ -144,7 +144,7 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 	convertTransformToPb(transform, t);
 	const string cacheKey = transform.getFrameParent() + transform.getFrameChild();
 
-	RSCTRACE(logger, "sendTransform()");
+	RSCTRACE(logger, "sendTransform() ");
 
 	MetaData meta;
 	if (transform.getAuthority() == "") {
@@ -170,6 +170,7 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 		RSCERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
 		return false;
 	}
+	RSCTRACE(logger, "sending " << event->getScope() << " " << transform);
 	rsbInformerTransform->publish(event);
 	RSCTRACE(logger, "sendTransform() done");
 	return true;
@@ -231,10 +232,9 @@ void TransformCommRsb::frameTransformCallback(EventPtr event) {
 	boost::shared_ptr<FrameTransform> t = boost::static_pointer_cast<FrameTransform>(
 			event->getData());
 	string authority = event->getMetaData().getUserInfo(userKeyAuthority);
-	vector<string> scopeComponents = event->getScope().getComponents();
-	vector<string>::iterator it = find(scopeComponents.begin(), scopeComponents.end(),
-			scopeSuffixDynamic);
-	bool isStatic = it == scopeComponents.end();
+
+	Scope staticScope = rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic));
+	bool isStatic = (event->getScope() == staticScope);
 
 	Transform transform;
 	convertPbToTransform(t, transform);
