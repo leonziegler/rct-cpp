@@ -7,16 +7,11 @@
 
 #include <csignal>
 #include <rct/TransformerFactory.h>
-
-bool enabled = true;
-
-void int_handler(int x) {
-	enabled = false;
-}
+#include <rsc/logging/Logger.h>
 
 int main(int argc, char **argv) {
 
-	signal(SIGINT, int_handler);
+	rsc::logging::Logger::getLogger("rct")->setLevel(rsc::logging::Logger::LEVEL_TRACE);
 
 	// create the transformer object
 	rct::TransformPublisher::Ptr publisher = rct::getTransformerFactory().createTransformPublisher("ExamplePublisher");
@@ -32,7 +27,7 @@ int main(int argc, char **argv) {
 	publisher->sendTransform(staticTransform, rct::STATIC);
 
 	double angle = 0;
-	while(enabled) {
+	while(true) {
 
 		// alter angle
 		angle += 0.01;
