@@ -170,6 +170,7 @@ std::string TransformerTF2::allFramesAsDot() const {
 	boost::algorithm::replace_all(dot, " tf ", " RCT ");
 	boost::algorithm::replace_all(dot, "Broadcaster:", "Publisher:");
 	boost::algorithm::replace_all(dot, "Average rate: 10000.000 Hz\\nMost recent transform: 0.000 \\nBuffer length: 0.000 sec", "Static transform");
+	boost::algorithm::replace_all(dot, "Most recent transform", "Most recent");
 	return dot;
 }
 
