@@ -14,8 +14,6 @@
 #include <boost/shared_ptr.hpp>
 #include <rsc/logging/Logger.h>
 
-#include <rct/FrameTransform.pb.h>
-
 namespace rct {
 
 class TransformCommRsb: public TransformCommunicator {
@@ -51,24 +49,19 @@ public:
 	virtual void addTransformListener(const std::vector<TransformListener::Ptr>& listeners);
 	virtual void removeTransformListener(const TransformListener::Ptr& listener);
 
-	static void convertTransformToPb(const Transform& transform,
-			boost::shared_ptr<FrameTransform> &t);
-	static void convertPbToTransform(const boost::shared_ptr<FrameTransform> &t,
-			Transform& transform);
-
 	void printContents(std::ostream& stream) const;
 
 	virtual std::string getAuthorityName() const;
 
 private:
 	rsb::ListenerPtr rsbListenerTransform;
-	rsb::Informer<FrameTransform>::Ptr rsbInformerTransform;
+	rsb::Informer<Transform>::Ptr rsbInformerTransform;
 	rsb::ListenerPtr rsbListenerSync;
 	rsb::Informer<void>::Ptr rsbInformerSync;
 	std::vector<TransformListener::Ptr> listeners;
 	boost::mutex mutex;
-	std::map<std::string, std::pair<boost::shared_ptr<FrameTransform>, rsb::MetaData> > sendCacheDynamic;
-	std::map<std::string, std::pair<boost::shared_ptr<FrameTransform>, rsb::MetaData> > sendCacheStatic;
+	std::map<std::string, std::pair<Transform, rsb::MetaData> > sendCacheDynamic;
+	std::map<std::string, std::pair<Transform, rsb::MetaData> > sendCacheStatic;
 	std::string authority;
 	rsb::HandlerPtr transformHandler;
 	rsb::HandlerPtr syncHandler;
@@ -78,7 +71,7 @@ private:
 	std::string scopeSuffixDynamic;
 	std::string userKeyAuthority;
 
-	void frameTransformCallback(rsb::EventPtr t);
+	void transformCallback(rsb::EventPtr t);
 	void triggerCallback(rsb::EventPtr t);
 	void publishCache();
 
