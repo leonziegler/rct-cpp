@@ -28,6 +28,8 @@ set(LIBDIR     "${PREFIX}/lib/")
 set(DATADIR    "${PREFIX}/share/${RCT_PACKAGE}")
 
 option(BUILD_EXAMPLES "build examples?" ON)
+option(BUILD_ROS_SUPPORT "build ros middleware support?" ON)
+option(BUILD_RSB_SUPPORT "build rsb middleware support?" ON)
 
 if(WIN32)
     set(RCT_BUILD_TYPE      STATIC)
@@ -60,70 +62,72 @@ link_directories(${RSC_LIBRARY_DIRS})
 find_package(RSC-CMake 0.11 REQUIRED)
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_INSTALL_PREFIX}/share/cmake/Modules" ${RSC_CMAKE_MODULE_PATH})
 
-message(STATUS "Using CMake module path: ${CMAKE_MODULE_PATH}")
-
-find_package(ProtocolBuffers REQUIRED)
-if(NOT PROTOBUF_LIBRARY)
-    message(FATAL_ERROR "protobuf library not found")
-endif()
-if(NOT PROTOBUF_INCLUDE_DIR)
-    message(FATAL_ERROR "protobuf include dir not found")
-endif()
-if(NOT PROTOBUF_PROTOC_EXECUTABLE)
-    message(FATAL_ERROR "protoc executable not found")
-endif()
-
-find_package(tf2 QUIET REQUIRED)
-include_directories(BEFORE SYSTEM  ${tf2_INCLUDE_DIRS})
-link_directories(${tf2_LIBRARY_DIRS})
-if(tf2_FOUND)
-	message(STATUS "tf2 version: ${tf2_VERSION}")
-	set(RCT_HAVE_TF2 TRUE)
-else(tf2_FOUND)
-	message(STATUS "tf2 not found. Support will NOT be built!")
-endif(tf2_FOUND)
-
-#rsb/t
-find_package(RSB 0.11 QUIET)
-find_package(RST 0.11 QUIET)
-if(RSB_FOUND AND RST_FOUND)
-	message(STATUS "RSB version: ${RSB_VERSION}")
-	message(STATUS "RST version: ${RST_VERSION}")
-	set(RCT_HAVE_RSB TRUE)
-	include_directories(BEFORE SYSTEM  ${RSB_INCLUDE_DIRS} ${RST_INCLUDE_DIRS})
-	link_directories(${RSB_LIBRARY_DIRS})
-	add_definitions(${RST_CFLAGS})
-else(RSB_FOUND AND RST_FOUND)
-	message(STATUS "RSB/RST not found. Support will NOT be built!")
-endif(RSB_FOUND AND RST_FOUND)
-
 #boost
 find_package(Boost REQUIRED QUIET COMPONENTS thread program_options date_time)
 include_directories(${Boost_INCLUDE_DIRS})
 add_definitions(-DBOOST_LOG_DYN_LINK)
 
+message(STATUS "Using CMake module path: ${CMAKE_MODULE_PATH}")
+
+find_package(tf2-minimal REQUIRED)
+include_directories(BEFORE SYSTEM  ${tf2-minimal_INCLUDE_DIRS})
+link_directories(${tf2-minimal_LIBRARY_DIRS})
+message(STATUS "tf2 version: ${tf2-minimal_VERSION}")
+set(RCT_HAVE_TF2 TRUE)
+
+if(BUILD_ROS_SUPPORT)
+	find_package(roscpp)
+	include_directories(BEFORE SYSTEM  ${roscpp_INCLUDE_DIRS})
+	link_directories(${roscpp_LIBRARY_DIRS})
+	if(roscpp_FOUND)
+		message(STATUS "roscpp version: ${roscpp_VERSION}")
+		set(RCT_HAVE_ROS TRUE)
+	else(roscpp_FOUND)
+		message(FATAL_ERROR "\nroscpp not found\nIn order skip building ROS support add option -DBUILD_ROS_SUPPORT=OFF")
+	endif(roscpp_FOUND)
+endif(BUILD_ROS_SUPPORT)
+
+if(BUILD_RSB_SUPPORT)
+	find_package(ProtocolBuffers)
+	if(NOT PROTOBUF_LIBRARY)
+	    message(FATAL_ERROR "\nprotobuf library not found\nIn order skip building RSB support add option -DBUILD_RSB_SUPPORT=OFF")
+	endif()
+	if(NOT PROTOBUF_INCLUDE_DIR)
+	    message(FATAL_ERROR "\nprotobuf include dir not found\nIn order skip building RSB support add option -DBUILD_RSB_SUPPORT=OFF")
+	endif()
+	if(NOT PROTOBUF_PROTOC_EXECUTABLE)
+	    message(FATAL_ERROR "\nprotoc executable not found\nIn order skip building RSB support add option -DBUILD_RSB_SUPPORT=OFF")
+	endif()
+	
+	#rsb/t
+	find_package(RSB 0.11 QUIET)
+	find_package(RST 0.11 QUIET)
+	if(RSB_FOUND AND RST_FOUND)
+		message(STATUS "RSB version: ${RSB_VERSION}")
+		message(STATUS "RST version: ${RST_VERSION}")
+		set(RCT_HAVE_RSB TRUE)
+		include_directories(BEFORE SYSTEM  ${RSB_INCLUDE_DIRS} ${RST_INCLUDE_DIRS})
+		link_directories(${RSB_LIBRARY_DIRS})
+		add_definitions(${RST_CFLAGS})
+	else(RSB_FOUND AND RST_FOUND)
+		message(FATAL_ERROR "RSB/RST not found!")
+		message(STATUS "In order skip building RSB support add option -DBUILD_RSB_SUPPORT=OFF")
+	endif(RSB_FOUND AND RST_FOUND)
+endif(BUILD_RSB_SUPPORT)
+
 configure_file(${CMAKE_SOURCE_DIR}/core/src/rct/rctConfig.h.in ${CMAKE_BINARY_DIR}/rct/rctConfig.h)
 install(FILES ${CMAKE_BINARY_DIR}/rct/rctConfig.h DESTINATION ${INCLUDEDIR}/rct)
 
-PROTOBUF_GENERATE(CPP PROTO_CPP_SOURCES PROTO_CPP_HEADERS
-                      PROTOFILES ${CMAKE_SOURCE_DIR}/rsb/src/rct/proto/FrameTransform.proto
-                      PROTOROOT ${CMAKE_SOURCE_DIR}/rsb/src/rct/proto/
-                      INCLUDES ${RST_STABLE_PROTO_ROOT}
-                      OUTPATH ${CMAKE_BINARY_DIR}/rct/)
-
 include_directories(${CMAKE_BINARY_DIR})
 
-# --- build instructions proto ---
-ADD_LIBRARY(${RCT_NAME_PROTO} SHARED ${PROTO_CPP_SOURCES} ${PROTO_CPP_HEADERS})
-TARGET_LINK_LIBRARIES(${RCT_NAME_PROTO} ${RST_LIBRARIES})
-SET_TARGET_PROPERTIES(${RCT_NAME_PROTO} PROPERTIES VERSION ${RCT_VERSION} SOVERSION ${RCT_API_VERSION})
-INSTALL(TARGETS ${RCT_NAME_PROTO} LIBRARY DESTINATION ${LIBDIR})
-INSTALL(FILES ${PROTO_CPP_HEADERS} DESTINATION ${INCLUDEDIR}/rct)
-
 # --- build instructions modules ---
-add_subdirectory(rsb/src)
 add_subdirectory(core/src)
-add_subdirectory(ros/src)
+if(BUILD_RSB_SUPPORT)
+	add_subdirectory(rsb/src)
+endif(BUILD_RSB_SUPPORT)
+if(BUILD_ROS_SUPPORT)
+	add_subdirectory(ros/src)
+endif(BUILD_ROS_SUPPORT)
 if(BUILD_EXAMPLES)
 	ADD_SUBDIRECTORY(examples/src)
 endif(BUILD_EXAMPLES)
