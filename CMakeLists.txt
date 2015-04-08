@@ -22,7 +22,7 @@ math(EXPR RCT_VERSION_CONT           "${RCT_VERSION_MAJOR_CONT}+${RCT_VERSION_MI
 
 set(PREFIX     ${CMAKE_INSTALL_PREFIX})
 set(BINDIR     "${PREFIX}/bin")
-set(INCLUDEDIR "${PREFIX}/include")
+set(INCLUDEDIR "${PREFIX}/include/${RCT_PACKAGE}")
 set(MANDIR     "${PREFIX}/man")
 set(LIBDIR     "${PREFIX}/lib/")
 set(DATADIR    "${PREFIX}/share/${RCT_PACKAGE}")
