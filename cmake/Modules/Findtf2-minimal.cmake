@@ -13,8 +13,11 @@ FIND_LIBRARY(tf2-minimal_LIBRARIES NAMES tf2
 		HINTS /lib /usr/lib /usr/local/lib
 )
 
+GET_FILENAME_COMPONENT(tf2-minimal_LIBRARY_DIR ${tf2-minimal_LIBRARIES} PATH)
+SET(tf2-minimal_LIBRARY_DIRS ${tf2-minimal_LIBRARY_DIR})
+
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(tf2-minimal DEFAULT_MSG tf2-minimal_INCLUDE_DIR tf2-minimal_LIBRARIES)
+find_package_handle_standard_args(tf2-minimal DEFAULT_MSG tf2-minimal_INCLUDE_DIR tf2-minimal_LIBRARY_DIRS tf2-minimal_LIBRARIES)
 set(tf2-minimal_INCLUDE_DIRS ${tf2-minimal_INCLUDE_DIR})
 
-MARK_AS_ADVANCED(tf2-minimal_INCLUDE_DIR tf2-minimal_LIBRARIES) 
+MARK_AS_ADVANCED(tf2-minimal_INCLUDE_DIR tf2-minimal_LIBRARIES tf2-minimal_LIBRARY_DIR) 

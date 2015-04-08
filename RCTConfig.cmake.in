@@ -6,6 +6,7 @@
  
 INCLUDE(FindPkgConfig)
 
+get_filename_component(RCT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
 # --- dependencies ---
 #rsc
@@ -18,8 +19,7 @@ list(APPEND ADDITIONAL_INCLUDE_DIRS ${RSC_INCLUDE_DIRS})
 list(APPEND ADDITIONAL_LIBRARY_DIRS ${RSC_LIBRARY_DIRS})
 
 set(PROJECT_CMAKE_PATH "${CMAKE_INSTALL_PREFIX}/share/cmake/Modules")
-#set(CMAKE_MODULE_PATH ${PROJECT_CMAKE_PATH} ${CMAKE_MODULE_PATH} ${RSC_CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/Modules )
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules )
+set(CMAKE_MODULE_PATH ${RCT_CMAKE_DIR}/cmake/Modules )
 message(STATUS "Using CMake module path: ${CMAKE_MODULE_PATH}")
 
 find_package(Eigen3 REQUIRED)
@@ -30,15 +30,10 @@ find_package(Log4cxx REQUIRED)
 list(APPEND ADDITIONAL_INCLUDE_DIRS ${Log4cxx_INCLUDE_DIRS})
 list(APPEND ADDITIONAL_LIBRARY_DIRS ${Log4cxx_LIBRARY_DIRS})
 
-find_package(tf2 QUIET)
-list(APPEND ADDITIONAL_INCLUDE_DIRS  ${tf2_INCLUDE_DIRS})
-list(APPEND ADDITIONAL_LIBRARY_DIRS ${tf2_LIBRARY_DIRS})
-if(tf2_FOUND)
-	message(STATUS "tf2 version: ${tf2_VERSION}")
-	set(RCT_HAVE_TF2 TRUE)
-else(tf2_FOUND)
-	message(STATUS "tf2 not found. Support will NOT be built!")
-endif(tf2_FOUND)
+#find_package(tf2-minimal REQUIRED)
+list(APPEND ADDITIONAL_INCLUDE_DIRS  @tf2-minimal_INCLUDE_DIRS@)
+list(APPEND ADDITIONAL_LIBRARY_DIRS @tf2-minimal_LIBRARY_DIRS@)
+set(RCT_HAVE_TF2 TRUE)
 
 #rsb/t
 find_package(RSB 0.11 QUIET)
