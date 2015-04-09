@@ -9,6 +9,8 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <tf2/exceptions.h>
+
 using namespace boost;
 using namespace std;
 using namespace Eigen;
@@ -21,8 +23,7 @@ rsc::logging::LoggerPtr TransformerTF2::logger = rsc::logging::Logger::getLogger
 TransformerTF2::TransformerTF2(const posix_time::time_duration& cacheTime) :
 		tfBuffer(ros::Duration().fromNSec(cacheTime.total_nanoseconds())) {
 
-	tf2::BufferCore::TransformableCallback f1(bind(&TransformerTF2::tfRequestCallback, this, _1, _2, _3, _4, _5));
-	tfCallbackHandle = tfBuffer.addTransformableCallback(f1);
+	tfBuffer._addTransformsChangedListener(bind(&TransformerTF2::tfChanged, this));
 }
 
 TransformerTF2::~TransformerTF2() {
@@ -52,7 +53,7 @@ void TransformerTF2::convertTfToTransform(const geometry_msgs::TransformStamped 
 	Eigen::Vector3d p(t.transform.translation.x, t.transform.translation.y,
 			t.transform.translation.z);
 	Eigen::Quaterniond r(t.transform.rotation.w, t.transform.rotation.x,
-			t.transform.rotation.y, t.transform.rotation.z);
+			t.transform.rotation.y,	t.transform.rotation.z);
 	Eigen::Affine3d a = Eigen::Affine3d().fromPositionOrientationScale(p, r, Vector3d::Ones());
 	tOut.setTransform(a);
 }
@@ -93,44 +94,63 @@ TransformerTF2::FuturePtr TransformerTF2::requestTransform(
 		const boost::posix_time::ptime& time) {
 
 	FuturePtr result(new FutureType());
-	TransformableRequestHandle handle = tfBuffer.addTransformableRequest(tfCallbackHandle, target_frame, source_frame, ros::Time().fromBoost(time));
-	{
-		boost::mutex::scoped_lock lock(inprogressMutex);
-		this->inprogress.insert(std::make_pair(handle, result));
+
+	boost::mutex::scoped_lock lock(inprogressMutex);
+	try {
+		Transform t = lookupTransform(target_frame, source_frame, time);
+		result->set(t);
+		RSCTRACE(this->logger, "Lookup possible before request applies. Take shortcut.");
+
+	} catch (tf2::LookupException &e) {
+
+		RSCTRACE(this->logger, "Lookup NOT possible before request applies. Register request.");
+
+		this->requestsInProgress.insert(
+				std::make_pair(Request(target_frame, source_frame, ros::Time().fromBoost(time)),
+						result));
+	} catch (tf2::ExtrapolationException &e) {
+
+		RSCTRACE(this->logger, "Lookup NOT possible before request applies. Register request.");
+
+		this->requestsInProgress.insert(
+				std::make_pair(Request(target_frame, source_frame, ros::Time().fromBoost(time)),
+						result));
 	}
+
 	return result;
 }
 
-void TransformerTF2::tfRequestCallback(TransformableRequestHandle request_handle, const std::string& target_frame, const std::string& source_frame,
-                                   ros::Time time, TransformableResult tresult) {
-	FuturePtr result;
-    {
-        boost::mutex::scoped_lock lock(this->inprogressMutex);
-        map<TransformableRequestHandle, FuturePtr>::const_iterator it
-            = this->inprogress.find(request_handle);
-        if (it != this->inprogress.end()) {
-            result = it->second;
-            this->inprogress.erase(request_handle);
-        }
-    }
-    if (!result) {
-        RSCDEBUG(this->logger, "Received uninteresting callback " << target_frame << " -> " << source_frame);
-        return;
-    }
-    RSCDEBUG(this->logger, "Received reply callback " << target_frame << " -> " << source_frame);
-    if (tresult == TransformFailure) {
-        result->setError("Transform Failure");
-    } else {
-    	geometry_msgs::TransformStamped t0 = tfBuffer.lookupTransform(target_frame, source_frame, time);
-		Transform t1;
-		convertTfToTransform(t0, t1);
-        result->set(t1);
-    }
+void TransformerTF2::tfChanged() {
+	boost::mutex::scoped_lock lock(inprogressMutex);
+
+	if (firstChangeTime.isZero()) {
+		boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
+		firstChangeTime = ros::Time().fromBoost(now);
+	}
+
+	std::map<Request, FuturePtr>::iterator it;
+	for (it = requestsInProgress.begin(); it != requestsInProgress.end(); ++it) {
+		try {
+			ros::Time t = it->first.time;
+			if (t < firstChangeTime) {
+				t = firstChangeTime;
+			}
+			geometry_msgs::TransformStamped t0 = tfBuffer.lookupTransform(it->first.target_frame,
+					it->first.source_frame, t);
+			Transform t1;
+			convertTfToTransform(t0, t1);
+			it->second->set(t1);
+			requestsInProgress.erase(it);
+		} catch (tf2::LookupException &e) {
+			RSCTRACE(this->logger, "Not yet transformable ");
+		} catch (tf2::ExtrapolationException &e) {
+			RSCTRACE(this->logger, "Not yet transformable ");
+		}
+	}
 }
 
-bool TransformerTF2::canTransform(const std::string& target_frame,
-		const std::string& source_frame, const posix_time::ptime& time,
-		std::string* error_msg) const {
+bool TransformerTF2::canTransform(const std::string& target_frame, const std::string& source_frame,
+		const posix_time::ptime& time, std::string* error_msg) const {
 	return tfBuffer.canTransform(target_frame, source_frame, ros::Time().fromBoost(time), error_msg);
 }
 
@@ -138,7 +158,8 @@ bool TransformerTF2::canTransform(const std::string& target_frame,
 		const posix_time::ptime& target_time, const std::string& source_frame,
 		const posix_time::ptime& source_time, const std::string& fixed_frame,
 		std::string* error_msg) const {
-	return tfBuffer.canTransform(target_frame, ros::Time().fromBoost(target_time), source_frame, ros::Time().fromBoost(source_time), fixed_frame, error_msg);
+	return tfBuffer.canTransform(target_frame, ros::Time().fromBoost(target_time), source_frame,
+			ros::Time().fromBoost(source_time), fixed_frame, error_msg);
 }
 
 void TransformerTF2::newTransformAvailable(const rct::Transform& t, bool isStatic) {
@@ -159,7 +180,8 @@ bool TransformerTF2::frameExists(const std::string& frame_id_str) const {
 	return tfBuffer._frameExists(frame_id_str);
 }
 
-std::string TransformerTF2::getParent(const std::string& frame_id, const boost::posix_time::ptime &time) const {
+std::string TransformerTF2::getParent(const std::string& frame_id,
+		const boost::posix_time::ptime &time) const {
 	string p;
 	tfBuffer._getParent(frame_id, ros::Time().fromBoost(time), p);
 	return p;
@@ -169,7 +191,9 @@ std::string TransformerTF2::allFramesAsDot() const {
 	std::string dot = tfBuffer._allFramesAsDot();
 	boost::algorithm::replace_all(dot, " tf ", " RCT ");
 	boost::algorithm::replace_all(dot, "Broadcaster:", "Publisher:");
-	boost::algorithm::replace_all(dot, "Average rate: 10000.000 Hz\\nMost recent transform: 0.000 \\nBuffer length: 0.000 sec", "Static transform");
+	boost::algorithm::replace_all(dot,
+			"Average rate: 10000.000 Hz\\nMost recent transform: 0.000 \\nBuffer length: 0.000 sec",
+			"Static transform");
 	boost::algorithm::replace_all(dot, "Most recent transform", "Most recent");
 	return dot;
 }

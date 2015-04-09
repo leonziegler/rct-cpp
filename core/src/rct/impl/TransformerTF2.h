@@ -67,8 +67,7 @@ public:
 	 *
 	 */
 	virtual FuturePtr requestTransform(const std::string& target_frame,
-			const std::string& source_frame,
-			const boost::posix_time::ptime& time);
+			const std::string& source_frame, const boost::posix_time::ptime& time);
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -77,9 +76,8 @@ public:
 	 * \param error_msg A pointer to a string which will be filled with why the transform failed, if not NULL
 	 * \return True if the transform is possible, false otherwise
 	 */
-	virtual bool canTransform(const std::string& target_frame,
-			const std::string& source_frame, const boost::posix_time::ptime &time,
-			std::string* error_msg = NULL) const;
+	virtual bool canTransform(const std::string& target_frame, const std::string& source_frame,
+			const boost::posix_time::ptime &time, std::string* error_msg = NULL) const;
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -106,7 +104,8 @@ public:
 	 * @param frame_id The frame id of the frame in question
 	 * @param parent The reference to the string to fill the parent
 	 * Returns true unless "NO_PARENT" */
-	virtual std::string getParent(const std::string& frame_id, const boost::posix_time::ptime &time) const;
+	virtual std::string getParent(const std::string& frame_id,
+			const boost::posix_time::ptime &time) const;
 
 	/** \brief Backwards compatabilityA way to see what frames have been cached
 	 * Useful for debugging
@@ -131,14 +130,26 @@ public:
 	virtual void newTransformAvailable(const rct::Transform&, bool isStatic);
 
 private:
-	tf2::BufferCore tfBuffer;
-	tf2::TransformableCallbackHandle tfCallbackHandle;
-    boost::mutex inprogressMutex;
-    std::map<tf2::TransformableRequestHandle, FuturePtr> inprogress;
-    static rsc::logging::LoggerPtr logger;
+	class Request {
+	public:
+		std::string target_frame;
+		std::string source_frame;
+		ros::Time time;
+		Request(const std::string& target_frame, const std::string& source_frame, ros::Time time) :
+				target_frame(target_frame), source_frame(source_frame), time(time) {
+		}
+		bool operator<(const Request &r) const {
+			return time < r.time;
+		}
+	};
 
-    void tfRequestCallback(tf2::TransformableRequestHandle request_handle, const std::string& target_frame, const std::string& source_frame,
-                                   ros::Time time, tf2::TransformableResult result);
+	tf2::BufferCore tfBuffer;
+	boost::mutex inprogressMutex;
+	std::map<Request, FuturePtr> requestsInProgress;
+	ros::Time firstChangeTime;
+	static rsc::logging::LoggerPtr logger;
+
+	void tfChanged();
 };
 
 } /* namespace rct */
