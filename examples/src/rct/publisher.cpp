@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 		if (angle > 2 * M_PI) angle = 0;
 
 		// create a dynamic transform
-		Eigen::Vector3d position(0.0, 1.0, 2.0);
+		Eigen::Vector3d position(1.0, 0.0, 0.0);
 		Eigen::AngleAxisd orientation(angle, Eigen::Vector3d::UnitX());
 		Eigen::Affine3d affine = Eigen::Affine3d().fromPositionOrientationScale(position, orientation,
 							Eigen::Vector3d::Ones());
