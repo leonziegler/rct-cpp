@@ -14,6 +14,7 @@
 #include <rsb/MetaData.h>
 #include <rsc/runtime/TypeStringTools.h>
 #include <log4cxx/log4cxx.h>
+#include <boost/make_shared.hpp>
 
 using namespace std;
 using namespace rsb;
