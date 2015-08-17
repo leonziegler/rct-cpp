@@ -12,9 +12,12 @@ int main(int argc, char **argv) {
 
 	rct::TransformReceiver::Ptr receiver = rct::getTransformerFactory().createTransformReceiver();
 
-	std::cout << "###\n### first lookup\n###" << std::endl;
+	std::cout << "###\n### first lookup (relevant information not available yet)\n###" << std::endl;
 
 	try {
+	    // lookup a transform which describes the status for the target system at the
+	    // current point in time ("right now"). This will fail because the required information is
+	    // not available yet.
 		rct::Transform t = receiver->lookupTransform("A", "C",
 				boost::posix_time::microsec_clock::universal_time());
 
@@ -26,9 +29,11 @@ int main(int argc, char **argv) {
 		std::cerr << "ERROR: " << e.what() << std::endl;
 	}
 
-	std::cout << "\n###\n### first request\n###" << std::endl;
+	std::cout << "\n###\n### first request (wait for transform using future object)\n###" << std::endl;
 
 	try {
+	    // request transform using a future object which will be filled as soon as the transform
+	    // is available. This allows waiting for the result.
 		rct::TransformReceiver::FuturePtr future = receiver->requestTransform("A", "C",
 				boost::posix_time::microsec_clock::universal_time());
 
@@ -42,11 +47,11 @@ int main(int argc, char **argv) {
 		std::cerr << "ERROR: " << e.what() << std::endl;
 	}
 
-	std::cout << "\n###\n### second lookup\n###" << std::endl;
+	std::cout << "\n###\n### second lookup (lookup most recent transform)\n###" << std::endl;
 
 	try {
-		rct::Transform t = receiver->lookupTransform("A", "C",
-				boost::posix_time::microsec_clock::universal_time());
+	    // lookup the most recent available transform for the requested frames.
+		rct::Transform t = receiver->lookupTransform("A", "C", boost::posix_time::from_time_t(0));
 
 		std::cout << "Translation (x,y,z):\n" << t.getTranslation() << std::endl;
 		std::cout << "Rotation (Quat w,x,y,z):\n" << t.getRotationQuat().w() << "\n"
@@ -56,7 +61,7 @@ int main(int argc, char **argv) {
 		std::cerr << "ERROR: " << e.what() << std::endl;
 	}
 
-	std::cout << "\n###\n### third lookup\n###" << std::endl;
+	std::cout << "\n###\n### third lookup (lookup in the past)\n###" << std::endl;
 
 	try {
 		// wait 20 milliseconds
