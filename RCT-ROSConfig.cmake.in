@@ -1,0 +1,34 @@
+# - Config file for the ClassificationFusion package
+# It defines the following variables
+#  RCT-ROS_INCLUDE_DIRS - include directories for PCA
+#  RCT-ROS_LIBRARY_DIRS - lib directories to link against
+#  RCT-ROS_LIBRARIES    - libraries to link against
+ 
+INCLUDE(FindPkgConfig)
+
+get_filename_component(RCT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+# --- dependencies ---
+set(PROJECT_CMAKE_PATH "${CMAKE_INSTALL_PREFIX}/share/cmake/Modules")
+set(CMAKE_MODULE_PATH ${RCT_CMAKE_DIR}/cmake/Modules )
+message(STATUS "Using CMake module path: ${CMAKE_MODULE_PATH}")
+
+find_package(RCT REQUIRED)
+list(APPEND ADDITIONAL_INCLUDE_DIRS ${RCT_INCLUDE_DIRS})
+list(APPEND ADDITIONAL_LIBRARY_DIRS ${RCT_LIBRARY_DIRS})
+
+#boost
+find_package(Boost REQUIRED QUIET COMPONENTS thread program_options date_time)
+list(APPEND ADDITIONAL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
+list(APPEND ADDITIONAL_LIBRARY_DIRS ${Boost_LIBRARY_DIRS})
+add_definitions(-DBOOST_LOG_DYN_LINK)
+
+GET_FILENAME_COMPONENT(CONFIG_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+SET(RCT-ROS_FOUND TRUE)
+SET(RCT-ROS_INCLUDE_DIRS "${CONFIG_DIR}/../../include/@RCT_PACKAGE@" "${ADDITIONAL_INCLUDE_DIRS}")
+SET(RCT-ROS_LIBRARY_DIRS "${CONFIG_DIR}/../../lib" "${ADDITIONAL_LIBRARY_DIRS}")
+SET(RCT-ROS_VERSION "@RCT_VERSION@")
+SET(RCT-ROS_CFLAGS "${ADDITIONAL_CFLAGS}")
+SET(RCT-ROS_LIBRARIES "${CONFIG_DIR}/../../lib/@RCT_BUILD_PREFIX@@RCT_NAME_ROS@@RCT_BUILD_SUFFIX@")
+
+# TODO: find dependencies here and append their include dirs to RCT_INCLUDE_DIRS

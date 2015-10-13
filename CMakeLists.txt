@@ -134,11 +134,15 @@ endif(BUILD_EXAMPLES)
 
 configure_file(RCTConfig.cmake.in "${PROJECT_BINARY_DIR}/RCTConfig.cmake" @ONLY)
 configure_file(RCTConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/RCTConfigVersion.cmake" @ONLY)
+configure_file(RCT-ROSConfig.cmake.in "${PROJECT_BINARY_DIR}/RCT-ROSConfig.cmake" @ONLY)
+configure_file(RCT-ROSConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/RCT-ROSConfigVersion.cmake" @ONLY)
 
 # Install the PCAConfig.cmake and PCAConfigVersion.cmake
 install(FILES
   "${PROJECT_BINARY_DIR}/RCTConfig.cmake"
   "${PROJECT_BINARY_DIR}/RCTConfigVersion.cmake"
+  "${PROJECT_BINARY_DIR}/RCT-ROSConfig.cmake"
+  "${PROJECT_BINARY_DIR}/RCT-ROSConfigVersion.cmake"
   DESTINATION "${DATADIR}")
 install(DIRECTORY
   "${PROJECT_SOURCE_DIR}/cmake"

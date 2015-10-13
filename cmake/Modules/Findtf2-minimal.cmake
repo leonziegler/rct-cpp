@@ -6,11 +6,11 @@
 # tf2-minimal_LIBRARIES - libtf2-minimal library
 
 FIND_PATH(tf2-minimal_INCLUDE_DIR tf2/buffer_core.h
-		HINTS /include /usr/include /usr/local/include
+		HINTS /include /usr/include /usr/local/include /opt/ros/indigo/include
 		PATH_SUFFIXES include
 )
 FIND_LIBRARY(tf2-minimal_LIBRARIES NAMES tf2
-		HINTS /lib /usr/lib /usr/local/lib
+		HINTS /lib /usr/lib /usr/local/lib /opt/ros/indigo/lib
 )
 
 GET_FILENAME_COMPONENT(tf2-minimal_LIBRARY_DIR ${tf2-minimal_LIBRARIES} PATH)
