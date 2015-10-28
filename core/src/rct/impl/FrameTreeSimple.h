@@ -10,11 +10,19 @@
 #include <boost/date_time.hpp>
 #include <boost/signals2.hpp>
 #include <boost/unordered_map.hpp>
+#include <boost/thread.hpp>
+
+#include <rsc/logging/Logger.h>
+
+#include "FrameHistory.h"
+#include "../Transform.h"
 
 namespace rct {
 
 class FrameTreeSimple {
 public:
+    static const uint32_t MAX_GRAPH_DEPTH = 1000UL;
+
     FrameTreeSimple(const boost::posix_time::time_duration& cacheTime);
     virtual ~FrameTreeSimple();
 
@@ -63,7 +71,7 @@ public:
      * \return True if the transform is possible, false otherwise
      */
     virtual bool canTransform(const std::string& target_frame, const std::string& source_frame,
-            const boost::posix_time::ptime &time, std::string* error_msg = NULL) const;
+            const boost::posix_time::ptime &time) const;
 
     /** \brief Test if a transform is possible
      * \param target_frame The frame into which to transform
@@ -76,8 +84,7 @@ public:
      */
     virtual bool canTransform(const std::string& target_frame,
             const boost::posix_time::ptime &target_time, const std::string& source_frame,
-            const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
-            std::string* error_msg = NULL) const;
+            const boost::posix_time::ptime &source_time, const std::string& fixed_frame) const;
 
     /** \brief A way to get a std::vector of available frame ids */
     virtual std::vector<std::string> getFrameStrings() const;
@@ -115,14 +122,45 @@ private:
 
     boost::posix_time::time_duration cacheTime;
 
-    std::vector<TimeCacheInterfacePtr> frames;
+    std::vector<FrameHistoryPtr> frames;
 
     /** \brief A mutex to protect testing and allocating new frames on the above vector. */
     mutable boost::mutex frameMutex;
+    mutable boost::mutex transformable_requests_mutex_;
 
     boost::unordered_map<std::string, uint32_t> frameIDs;
     std::vector<std::string> frameIDsReverse;
     std::map<uint32_t, std::string> authorities;
+
+    typedef boost::signals2::signal<void(void)> TransformsChangedSignal;
+    TransformsChangedSignal _transforms_changed_;
+
+    static const rsc::logging::LoggerPtr logger;
+
+    uint32_t lookupOrInsertFrameNumber(const std::string& frameStr);
+    void testTransformableRequests();
+    FrameHistoryPtr getFrame(uint32_t frameId) const;
+    FrameHistoryPtr allocateFrame(uint32_t cfid, bool isStatic);
+
+    uint32_t lookupFrameNumber(const std::string& frameStr) const;
+
+    const std::string& lookupFrameString(uint32_t frameNum) const;
+
+    uint32_t validateFrameId(const std::string& function, const std::string& frame_id) const;
+    bool warnFrameId(const std::string& function, const std::string& frame_id) const;
+
+    boost::posix_time::ptime getLatestCommonTime(uint32_t target_frame,
+            uint32_t source_frame) const;
+
+    std::string allFramesAsStringNoLock() const;
+    bool canTransformNoLock(uint32_t target_id, uint32_t source_id,
+            const boost::posix_time::ptime& time) const;
+    bool canTransformInternal(uint32_t target_id, uint32_t source_id,
+            const boost::posix_time::ptime& time) const;
+
+    template<typename F>
+    void walkToTopParent(F& f, boost::posix_time::ptime time, uint32_t target_id,
+            uint32_t source_id, std::vector<uint32_t> *frame_chain) const;
 
 };
 

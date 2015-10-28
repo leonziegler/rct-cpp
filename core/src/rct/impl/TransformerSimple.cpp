@@ -107,16 +107,15 @@ void TransformerSimple::treeChanged() {
 }
 
 bool TransformerSimple::canTransform(const std::string& target_frame, const std::string& source_frame,
-		const posix_time::ptime& time, std::string* error_msg) const {
-	return tfBuffer.canTransform(target_frame, source_frame, time, error_msg);
+		const posix_time::ptime& time) const {
+	return tfBuffer.canTransform(target_frame, source_frame, time);
 }
 
 bool TransformerSimple::canTransform(const std::string& target_frame,
 		const posix_time::ptime& target_time, const std::string& source_frame,
-		const posix_time::ptime& source_time, const std::string& fixed_frame,
-		std::string* error_msg) const {
+		const posix_time::ptime& source_time, const std::string& fixed_frame) const {
 	return tfBuffer.canTransform(target_frame, target_time, source_frame,
-			source_time, fixed_frame, error_msg);
+			source_time, fixed_frame);
 }
 
 void TransformerSimple::newTransformAvailable(const rct::Transform& t, bool isStatic) {

@@ -12,6 +12,8 @@
 
 #include <Eigen/Geometry>
 
+#include <list>
+
 namespace rct {
 
 struct TransformStorage {
@@ -66,6 +68,7 @@ public:
 typedef boost::shared_ptr<FrameHistory> FrameHistoryPtr;
 
 class DynamicFrameHistory: public FrameHistory {
+public:
     static const int MIN_INTERPOLATION_DISTANCE = 5; //!< Number of nano-seconds to not interpolate below.
     static const unsigned int MAX_LENGTH_LINKED_LIST = 1000000; //!< Maximum length of linked list, to make sure not to be able to use unlimited memory.
     static const int64_t DEFAULT_MAX_STORAGE_TIME = 1ULL * 1000000000LL; //!< default value of 10 seconds storage

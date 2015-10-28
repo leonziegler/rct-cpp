@@ -26,7 +26,7 @@ public:
             reason(reason) {
 
     }
-    virtual ~RctException() {
+    virtual ~RctException() throw () {
     }
     virtual const char* what() const throw () {
         std::string out;
@@ -36,7 +36,8 @@ public:
             out = msg;
         }
         if (reason.what() != "") {
-            out += ". Reason: " + reason.what();
+            out += ". Reason: ";
+            out += reason.what();
         }
         return out.c_str();
     }
@@ -67,7 +68,7 @@ public:
             RctException("ExtrapolationException", reason) {
 
     }
-    virtual ~ExtrapolationException() {
+    virtual ~ExtrapolationException() throw () {
     }
 };
 
@@ -88,6 +89,49 @@ public:
             RctException("LookupException", reason) {
 
     }
-    virtual ~LookupException() {
+    virtual ~LookupException() throw () {
     }
 };
+
+/**
+ * \brief Exception for errors related to wrong arguments.
+ */
+class InvalidArgumentException: public RctException {
+public:
+    InvalidArgumentException(const std::string &msg) :
+            RctException(msg) {
+
+    }
+    InvalidArgumentException(const std::string &msg, const std::exception &reason) :
+            RctException(msg, reason) {
+
+    }
+    InvalidArgumentException(const std::exception &reason) :
+            RctException("InvalidArgumentException", reason) {
+
+    }
+    virtual ~InvalidArgumentException() throw () {
+    }
+};
+
+/**
+ * \brief Exception for errors related to unconnected transformation trees.
+ */
+class ConnectivityException: public RctException {
+public:
+    ConnectivityException(const std::string &msg) :
+            RctException(msg) {
+
+    }
+    ConnectivityException(const std::string &msg, const std::exception &reason) :
+            RctException(msg, reason) {
+
+    }
+    ConnectivityException(const std::exception &reason) :
+            RctException("ConnectivityException", reason) {
+
+    }
+    virtual ~ConnectivityException() throw () {
+    }
+};
+

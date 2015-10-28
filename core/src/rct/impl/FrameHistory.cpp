@@ -6,6 +6,7 @@
  */
 
 #include "FrameHistory.h"
+#include "../Exceptions.h"
 
 using namespace std;
 
@@ -24,7 +25,7 @@ TransformStorage DynamicFrameHistory::getData(boost::posix_time::ptime time) {
 
     int num_nodes = findClosest(p_temp_1, p_temp_2, time);
     if (num_nodes == 0) {
-        return false;
+        throw RctException("No data yet");
     } else if (num_nodes == 1) {
         return *p_temp_1;
     } else if (num_nodes == 2) {
@@ -37,8 +38,7 @@ TransformStorage DynamicFrameHistory::getData(boost::posix_time::ptime time) {
     } else {
         assert(0);
     }
-
-    return true;
+    throw RctException("No data yet");
 }
 
 bool DynamicFrameHistory::insertData(const TransformStorage& new_data) {
@@ -130,8 +130,8 @@ inline uint8_t DynamicFrameHistory::findClosest(TransformStorage*& one, Transfor
         }
     }
 
-    ros::Time latest_time = (*storage.begin()).time;
-    ros::Time earliest_time = (*(storage.rbegin())).time;
+    boost::posix_time::ptime latest_time = (*storage.begin()).time;
+    boost::posix_time::ptime earliest_time = (*(storage.rbegin())).time;
 
     if (target_time == latest_time) {
         one = &(*storage.begin());
@@ -186,8 +186,8 @@ inline TransformStorage DynamicFrameHistory::interpolate(const TransformStorage&
     Eigen::Vector3d t = s * t0 + ratio * t1;
 
     //Interpolate rotation
-    Eigen::Quaterniond q0 = one.transform.rotation();
-    Eigen::Quaterniond q1 = two.transform.rotation();
+    Eigen::Quaterniond q0(one.transform.rotation());
+    Eigen::Quaterniond q1(two.transform.rotation());
     Eigen::Quaterniond q = q0.slerp(ratio, q1);
 
     TransformStorage output;
@@ -199,7 +199,7 @@ inline TransformStorage DynamicFrameHistory::interpolate(const TransformStorage&
 }
 
 void DynamicFrameHistory::pruneList() {
-    ros::Time latest_time = storage.begin()->time;
+    boost::posix_time::ptime latest_time = storage.begin()->time;
 
     while (!storage.empty() && storage.back().time + maxStorageTime < latest_time) {
         storage.pop_back();
