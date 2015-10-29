@@ -29,6 +29,7 @@ set(LIBDIR     "${PREFIX}/lib/")
 set(DATADIR    "${PREFIX}/share/${RCT_PACKAGE}")
 set(DATADIR_ROS    "${PREFIX}/share/${RCT-ROS_PACKAGE}")
 
+option(BUILD_TESTS "Decide if the test suite shall be built or not" ON)
 option(BUILD_EXAMPLES "build examples?" ON)
 option(BUILD_ROS_SUPPORT "build ros middleware support?" ON)
 option(BUILD_RSB_SUPPORT "build rsb middleware support?" ON)
@@ -124,6 +125,7 @@ include_directories(${CMAKE_BINARY_DIR})
 
 # --- build instructions modules ---
 add_subdirectory(core/src)
+
 if(BUILD_RSB_SUPPORT)
 	add_subdirectory(rsb/src)
 endif(BUILD_RSB_SUPPORT)
@@ -133,6 +135,17 @@ endif(BUILD_ROS_SUPPORT)
 if(BUILD_EXAMPLES)
 	ADD_SUBDIRECTORY(examples/src)
 endif(BUILD_EXAMPLES)
+
+ENABLE_TESTING()
+IF(BUILD_TESTS)
+    INCLUDE(ProvideGoogleMock)
+    IF(GMOCK_AVAILABLE)
+        ADD_SUBDIRECTORY(test)
+    ELSE()
+        MESSAGE(WARNING "Could not build unit tests even though desired because Google Mock could not be installed.")
+    ENDIF()
+ENDIF()
+
 
 configure_file(RCTConfig.cmake.in "${PROJECT_BINARY_DIR}/RCTConfig.cmake" @ONLY)
 configure_file(RCTConfigVersion.cmake.in "${PROJECT_BINARY_DIR}/RCTConfigVersion.cmake" @ONLY)
