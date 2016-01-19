@@ -1,0 +1,20 @@
+package rct;
+
+import "FrameTransform.proto";
+
+option java_outer_classname = "FrameTransform";
+option java_package = "rct.proto";
+
+/**
+ * A Collection of FrameTransforms
+ *
+ *
+ * @author Leon Ziegler <lziegler@techfak.uni-bielefeld.de>
+ */
+message FrameTransformCollection {
+
+    /**
+     * 
+     */
+    repeated        rct.FrameTransform    transforms     = 1;
+}

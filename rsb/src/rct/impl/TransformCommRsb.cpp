@@ -204,10 +204,13 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, T
         } else {
             
                 Scope scope;
+                std::map< std::string, std::map<std::string, Transform> >* cache = NULL;
                 if(type == DYNAMIC) {
                     scope = rsbInformerTransformCollection->getScope()->concat(Scope(scopeSuffixDynamic));
+                    cache = &sendCacheDynamic;
                 } else {
                     scope = rsbInformerTransformCollection->getScope()->concat(Scope(scopeSuffixStatic));
+                    cache = &sendCacheStatic;
                 }
 
                 if (!rsbInformerTransformCollection) {
@@ -219,6 +222,7 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, T
                 map<string, vector<Transform> > transformsByAuthority;
 
                 for(int i=0; i<transforms.size(); i++) {
+                	const string cacheKey = transforms[i].getFrameParent() + transforms[i].getFrameChild();
                     string usedAuthority = "";
                     if (transforms[i].getAuthority() == "") {
                             usedAuthority = authority;
@@ -229,6 +233,10 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, T
                     if(!transformsByAuthority.count(usedAuthority)) {
                         transformsByAuthority[usedAuthority] = vector<Transform>();
                     }
+                    if(!cache->count(usedAuthority)) {
+                        (*cache)[usedAuthority] = map<string, Transform>();
+                    }
+                    (*cache)[usedAuthority][cacheKey] = transforms[i];
                     transformsByAuthority[usedAuthority].push_back(transforms[i]);
                 }
 
@@ -256,8 +264,12 @@ void TransformCommRsb::publishCache() {
 	RSCTRACE(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
 
 	map<string, map<string, Transform> >::iterator itAuthorities;
+
+	RSCTRACE(logger, "Publishing dynamic");
         
 	for (itAuthorities = sendCacheDynamic.begin(); itAuthorities != sendCacheDynamic.end(); itAuthorities++) {
+
+            RSCTRACE(logger, "Publishing cache for authority " << itAuthorities->first);
             
             map<string, Transform >& authorityCache = itAuthorities->second;
             string authority = itAuthorities->first;
@@ -275,6 +287,7 @@ void TransformCommRsb::publishCache() {
                             event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixDynamic)));
                             event->setMetaData(meta);
                             rsbInformerTransform->publish(event);
+                            RSCTRACE(logger, "Publishing cache key " << it->first);
                     }
                     
             } else {
@@ -287,8 +300,12 @@ void TransformCommRsb::publishCache() {
                     event->setScope(rsbInformerTransformCollection->getScope()->concat(Scope(scopeSuffixDynamic)));
                     event->setMetaData(meta);
                     rsbInformerTransformCollection->publish(event);
+
+                    RSCTRACE(logger, "all at once!");
             }
 	}
+
+	RSCTRACE(logger, "Publishing dynamic");
         
 	for (itAuthorities = sendCacheStatic.begin(); itAuthorities != sendCacheStatic.end(); itAuthorities++) {
             EventPtr event(rsbInformerTransformCollection->createEvent());
@@ -309,6 +326,7 @@ void TransformCommRsb::publishCache() {
                             event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic)));
                             event->setMetaData(meta);
                             rsbInformerTransform->publish(event);
+                            RSCTRACE(logger, "Publishing cache key " << it->first);
                     }
                     
             } else {
@@ -321,6 +339,8 @@ void TransformCommRsb::publishCache() {
                     event->setScope(rsbInformerTransformCollection->getScope()->concat(Scope(scopeSuffixStatic)));
                     event->setMetaData(meta);
                     rsbInformerTransformCollection->publish(event);
+
+                    RSCTRACE(logger, "all at once!");
             }
 	}
 }
