@@ -99,7 +99,7 @@ rsb::AnnotatedData TransformConverter::deserialize(const std::string& wireType,
 	// Read domain data from ProtoBuf
 	rstToDomain(*proto, *domain);
 
-	return rsb::AnnotatedData(getDataType(), domain);
+	return rsb::AnnotatedData(rsc::runtime::typeName<rct::FrameTransform>(), domain);
 }
 
 } /* namespace rct */

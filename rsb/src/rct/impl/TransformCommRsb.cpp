@@ -242,6 +242,8 @@ bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, T
 
                 map<string, vector<Transform> >::iterator authorityIt;
                 for(authorityIt = transformsByAuthority.begin(); authorityIt != transformsByAuthority.end(); authorityIt++) {
+                    RSCTRACE(logger, "sendTransform(vector<>) Generating event for " << authorityIt->first);
+
                     const string& authority = authorityIt->first;
                     const vector<Transform>& transforms = authorityIt->second;
 
@@ -305,7 +307,7 @@ void TransformCommRsb::publishCache() {
             }
 	}
 
-	RSCTRACE(logger, "Publishing dynamic");
+	RSCTRACE(logger, "Publishing static");
         
 	for (itAuthorities = sendCacheStatic.begin(); itAuthorities != sendCacheStatic.end(); itAuthorities++) {
             EventPtr event(rsbInformerTransformCollection->createEvent());
@@ -402,6 +404,8 @@ void TransformCommRsb::transformCallback(EventPtr event) {
             RSCDEBUG(logger, "Received transform from " << authority);
             RSCTRACE(logger, "Received transform: " << *t);
             processTransform(t, authority, listeners, isStatic);
+        } else {
+            RSCWARN(logger, "Received invalid data type: " << event->getType() << ", expected " << rsc::runtime::typeName<FrameTransformCollection>() << " or " << rsc::runtime::typeName<FrameTransform>());
         }
 }
 
