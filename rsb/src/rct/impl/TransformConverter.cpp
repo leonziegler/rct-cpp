@@ -21,7 +21,7 @@ using namespace rsb::converter;
 
 namespace rct {
 
-void domainToRST(const Transform& transform, FrameTransform &t) {
+void TransformConverter::domainToRST(const Transform& transform, FrameTransform &t) {
 	boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
 	boost::posix_time::time_duration::tick_type microTime =
 			(transform.getTime() - epoch).total_microseconds();
@@ -29,15 +29,17 @@ void domainToRST(const Transform& transform, FrameTransform &t) {
 	t.set_frame_parent(transform.getFrameParent());
 	t.set_frame_child(transform.getFrameChild());
 	t.mutable_time()->set_time(microTime);
-	t.mutable_transform()->mutable_translation()->set_x(transform.getTranslation().x());
-	t.mutable_transform()->mutable_translation()->set_y(transform.getTranslation().y());
-	t.mutable_transform()->mutable_translation()->set_z(transform.getTranslation().z());
-	t.mutable_transform()->mutable_rotation()->set_qw(transform.getRotationQuat().w());
-	t.mutable_transform()->mutable_rotation()->set_qx(transform.getRotationQuat().x());
-	t.mutable_transform()->mutable_rotation()->set_qy(transform.getRotationQuat().y());
-	t.mutable_transform()->mutable_rotation()->set_qz(transform.getRotationQuat().z());
+        const Eigen::Vector3d trans = transform.getTranslation();
+	t.mutable_transform()->mutable_translation()->set_x(trans.x());
+	t.mutable_transform()->mutable_translation()->set_y(trans.y());
+	t.mutable_transform()->mutable_translation()->set_z(trans.z());
+        const Eigen::Quaterniond quat = transform.getRotationQuat();
+	t.mutable_transform()->mutable_rotation()->set_qw(quat.w());
+	t.mutable_transform()->mutable_rotation()->set_qx(quat.x());
+	t.mutable_transform()->mutable_rotation()->set_qy(quat.y());
+	t.mutable_transform()->mutable_rotation()->set_qz(quat.z());
 }
-void rstToDomain(const FrameTransform &t, Transform& transform) {
+void TransformConverter::rstToDomain(const FrameTransform &t, Transform& transform) {
 	const boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
 	const boost::posix_time::ptime time = epoch + boost::posix_time::microseconds(t.time().time());
 

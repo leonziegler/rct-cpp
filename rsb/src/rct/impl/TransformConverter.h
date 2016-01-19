@@ -13,11 +13,18 @@
 
 #include <rsb/converter/Converter.h>
 
+#include <rct/Transform.h>
+#include <rct/FrameTransform.pb.h>
+
 namespace rct {
 
 class TransformConverter: public rsb::converter::Converter<std::string>  {
 public:
 	typedef boost::shared_ptr<TransformConverter> Ptr;
+        
+        void domainToRST(const Transform& transform, FrameTransform &t);
+        
+        void rstToDomain(const FrameTransform &t, Transform& transform);
 
 	TransformConverter();
 	virtual ~TransformConverter();

@@ -12,5 +12,5 @@ echo ""
 protoc \
 --proto_path=rct/proto:$prefix/share/rst0.11/proto/stable/ \
 --cpp_out=rct/impl \
-rct/proto/FrameTransform.proto \
+rct/proto/*.proto \
 echo "done."

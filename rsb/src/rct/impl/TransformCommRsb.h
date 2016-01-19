@@ -19,17 +19,17 @@ namespace rct {
 class TransformCommRsb: public TransformCommunicator {
 public:
 	typedef boost::shared_ptr<TransformCommRsb> Ptr;
-	TransformCommRsb(const std::string &authority);
-	TransformCommRsb(const std::string &authority, const TransformListener::Ptr& listener);
+	TransformCommRsb(const std::string &authority, bool legacyMode=false);
+	TransformCommRsb(const std::string &authority, const TransformListener::Ptr& listener, bool legacyMode=false);
 	TransformCommRsb(const std::string &authority,
-			const std::vector<TransformListener::Ptr>& listeners);
+			const std::vector<TransformListener::Ptr>& listeners, bool legacyMode=false);
 	TransformCommRsb(const std::string &authority, const TransformListener::Ptr& listener,
 			std::string scopeSync, std::string scopeTransforms, std::string scopeSuffixStatic,
-			std::string scopeSuffixDynamic, std::string userKeyAuthority);
+			std::string scopeSuffixDynamic, std::string userKeyAuthority, bool legacyMode=false);
 	TransformCommRsb(const std::string &authority,
 			const std::vector<TransformListener::Ptr>& listeners, std::string scopeSync,
 			std::string scopeTransforms, std::string scopeSuffixStatic,
-			std::string scopeSuffixDynamic, std::string userKeyAuthority);
+			std::string scopeSuffixDynamic, std::string userKeyAuthority, bool legacyMode=false);
 	virtual ~TransformCommRsb();
 
 	virtual void init(const TransformerConfig &conf);
@@ -54,14 +54,16 @@ public:
 	virtual std::string getAuthorityName() const;
 
 private:
+        bool legacyMode;
 	rsb::ListenerPtr rsbListenerTransform;
 	rsb::Informer<Transform>::Ptr rsbInformerTransform;
+	rsb::Informer< std::vector<Transform> >::Ptr rsbInformerTransformCollection;
 	rsb::ListenerPtr rsbListenerSync;
 	rsb::Informer<void>::Ptr rsbInformerSync;
 	std::vector<TransformListener::Ptr> listeners;
 	boost::mutex mutex;
-	std::map<std::string, std::pair<Transform, rsb::MetaData> > sendCacheDynamic;
-	std::map<std::string, std::pair<Transform, rsb::MetaData> > sendCacheStatic;
+	std::map< std::string, std::map<std::string, Transform> > sendCacheDynamic;
+	std::map< std::string, std::map<std::string, Transform> > sendCacheStatic;
 	std::string authority;
 	rsb::HandlerPtr transformHandler;
 	rsb::HandlerPtr syncHandler;

@@ -7,6 +7,7 @@
 
 #include "TransformCommRsb.h"
 #include "TransformConverter.h"
+#include "TransformCollectionConverter.h"
 #include <rsb/converter/Repository.h>
 #include <rsb/Factory.h>
 #include <rsb/Handler.h>
@@ -29,59 +30,64 @@ string TransformCommRsb::defaultScopeSufficStatic = "/static";
 string TransformCommRsb::defaultScopeSuffixDynamic = "/dynamic";
 string TransformCommRsb::defaultUserKeyAuthority = "authority";
 
-TransformCommRsb::TransformCommRsb(const string &authority) :
+TransformCommRsb::TransformCommRsb(const string &authority, bool legacyMode) :
 		authority(authority),
 		scopeSync(defaultScopeSync),
 		scopeTransforms(defaultScopeTransforms),
 		scopeSuffixStatic(defaultScopeSufficStatic),
 		scopeSuffixDynamic(defaultScopeSuffixDynamic),
-		userKeyAuthority(defaultUserKeyAuthority) {
+		userKeyAuthority(defaultUserKeyAuthority),
+                legacyMode(legacyMode) {
 }
 
-TransformCommRsb::TransformCommRsb(const string &authority, const TransformListener::Ptr& l) :
+TransformCommRsb::TransformCommRsb(const string &authority, const TransformListener::Ptr& l, bool legacyMode) :
 		authority(authority),
 		scopeSync(defaultScopeSync),
 		scopeTransforms(defaultScopeTransforms),
 		scopeSuffixStatic(defaultScopeSufficStatic),
 		scopeSuffixDynamic(defaultScopeSuffixDynamic),
-		userKeyAuthority(defaultUserKeyAuthority) {
+		userKeyAuthority(defaultUserKeyAuthority),
+                legacyMode(legacyMode)  {
 
 	addTransformListener(l);
 }
 
-TransformCommRsb::TransformCommRsb(const string &authority, const vector<TransformListener::Ptr>& l) :
+TransformCommRsb::TransformCommRsb(const string &authority, const vector<TransformListener::Ptr>& l, bool legacyMode) :
 		authority(authority),
 		scopeSync(defaultScopeSync),
 		scopeTransforms(defaultScopeTransforms),
 		scopeSuffixStatic(defaultScopeSufficStatic),
 		scopeSuffixDynamic(defaultScopeSuffixDynamic),
-		userKeyAuthority(defaultUserKeyAuthority) {
+		userKeyAuthority(defaultUserKeyAuthority),
+                legacyMode(legacyMode)  {
 
 	addTransformListener(l);
 }
 
 TransformCommRsb::TransformCommRsb(const string &authority, const TransformListener::Ptr& l,
 		std::string scopeSync, std::string scopeTransforms, std::string scopeSuffixStatic,
-		std::string scopeSuffixDynamic, std::string userKeyAuthority) :
+		std::string scopeSuffixDynamic, std::string userKeyAuthority, bool legacyMode) :
 		authority(authority),
 		scopeSync(scopeSync),
 		scopeTransforms(scopeTransforms),
 		scopeSuffixStatic(scopeSuffixStatic),
 		scopeSuffixDynamic(scopeSuffixDynamic),
-		userKeyAuthority(userKeyAuthority) {
+		userKeyAuthority(userKeyAuthority),
+                legacyMode(legacyMode)  {
 
 	addTransformListener(l);
 }
 
 TransformCommRsb::TransformCommRsb(const string &authority, const vector<TransformListener::Ptr>& l,
 		std::string scopeSync, std::string scopeTransforms, std::string scopeSuffixStatic,
-		std::string scopeSuffixDynamic, std::string userKeyAuthority) :
+		std::string scopeSuffixDynamic, std::string userKeyAuthority, bool legacyMode) :
 		authority(authority),
 		scopeSync(scopeSync),
 		scopeTransforms(scopeTransforms),
 		scopeSuffixStatic(scopeSuffixStatic),
 		scopeSuffixDynamic(scopeSuffixDynamic),
-		userKeyAuthority(userKeyAuthority) {
+		userKeyAuthority(userKeyAuthority),
+                legacyMode(legacyMode)  {
 
 	addTransformListener(l);
 }
@@ -98,12 +104,19 @@ void TransformCommRsb::init(const TransformerConfig &conf) {
 	} catch (std::invalid_argument &e) {
 		RSCTRACE(logger, "Converter already present");
 	}
+	try {
+		TransformCollectionConverter::Ptr converter0(new TransformCollectionConverter());
+		converter::converterRepository<string>()->registerConverter(converter0);
+	} catch (std::invalid_argument &e) {
+		RSCTRACE(logger, "Converter already present");
+	}
 
 	Factory &factory = rsb::getFactory();
 
 	rsbListenerTransform = factory.createListener(scopeTransforms);
 	rsbListenerSync = factory.createListener(scopeSync);
 	rsbInformerTransform = factory.createInformer<Transform>(scopeTransforms);
+	rsbInformerTransformCollection = factory.createInformer< vector<Transform> >(scopeTransforms);
 	rsbInformerSync = factory.createInformer<void>(scopeSync);
 
 	EventFunction f0(bind(&TransformCommRsb::transformCallback, this, _1));
@@ -145,10 +158,13 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 	RSCTRACE(logger, "sendTransform() ");
 
 	MetaData meta;
+        string usedAuthority = "";
 	if (transform.getAuthority() == "") {
 		meta.setUserInfo(userKeyAuthority, authority);
+                usedAuthority = authority;
 	} else {
 		meta.setUserInfo(userKeyAuthority, transform.getAuthority());
+                usedAuthority = transform.getAuthority();
 	}
 
 	boost::mutex::scoped_lock(mutex);
@@ -159,10 +175,16 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 	event->setMetaData(meta);
 
 	if (type == STATIC) {
-		sendCacheStatic[cacheKey] = make_pair(transform, meta);
+                if(!sendCacheStatic.count(usedAuthority)) {
+                    sendCacheStatic[usedAuthority] = map<string, Transform>();
+                }
+		sendCacheStatic[usedAuthority][cacheKey] = transform;
 		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic)));
 	} else if (type == DYNAMIC) {
-		sendCacheDynamic[cacheKey] = make_pair(transform, meta);
+                if(!sendCacheDynamic.count(usedAuthority)) {
+                    sendCacheDynamic[usedAuthority] = map<string, Transform>();
+                }
+		sendCacheDynamic[usedAuthority][cacheKey] = transform;
 		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixDynamic)));
 	} else {
 		RSCERROR(logger, "Cannot send transform. Reason: Unknown TransformType: " << type);
@@ -175,30 +197,131 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 }
 
 bool TransformCommRsb::sendTransform(const std::vector<Transform>& transforms, TransformType type) {
-	std::vector<Transform>::const_iterator it;
-	for (it = transforms.begin(); it != transforms.end(); ++it) {
-		sendTransform(*it, type);
-	}
+        if(legacyMode) {
+                for(int i=0; i<transforms.size(); i++) {
+                        sendTransform(transforms[i], type);
+                }
+        } else {
+            
+                Scope scope;
+                if(type == DYNAMIC) {
+                    scope = rsbInformerTransformCollection->getScope()->concat(Scope(scopeSuffixDynamic));
+                } else {
+                    scope = rsbInformerTransformCollection->getScope()->concat(Scope(scopeSuffixStatic));
+                }
+
+                if (!rsbInformerTransformCollection) {
+                        throw std::runtime_error("communicator was not initialized!");
+                }
+
+                RSCTRACE(logger, "sendTransform(vector<>) ");
+
+                map<string, vector<Transform> > transformsByAuthority;
+
+                for(int i=0; i<transforms.size(); i++) {
+                    string usedAuthority = "";
+                    if (transforms[i].getAuthority() == "") {
+                            usedAuthority = authority;
+                    } else {
+                            usedAuthority = transforms[i].getAuthority();
+                    }
+
+                    if(!transformsByAuthority.count(usedAuthority)) {
+                        transformsByAuthority[usedAuthority] = vector<Transform>();
+                    }
+                    transformsByAuthority[usedAuthority].push_back(transforms[i]);
+                }
+
+                map<string, vector<Transform> >::iterator authorityIt;
+                for(authorityIt = transformsByAuthority.begin(); authorityIt != transformsByAuthority.end(); authorityIt++) {
+                    const string& authority = authorityIt->first;
+                    const vector<Transform>& transforms = authorityIt->second;
+
+                    EventPtr event(rsbInformerTransformCollection->createEvent());
+
+                    MetaData meta;
+                    meta.setUserInfo(userKeyAuthority, authority);
+
+                    event->setMetaData(meta);
+                    event->setScope(scope);
+                    event->setData(make_shared< vector<Transform> >(transforms));
+                    
+                    rsbInformerTransformCollection->publish(event);
+                }
+        }
 	return true;
 }
 
 void TransformCommRsb::publishCache() {
 	RSCTRACE(logger, "Publishing cache from " << rsbInformerTransform->getId().getIdAsString());
 
-	map<string, std::pair<Transform, MetaData> >::iterator it;
-	for (it = sendCacheDynamic.begin(); it != sendCacheDynamic.end(); it++) {
-		EventPtr event(rsbInformerTransform->createEvent());
-		event->setData(make_shared<Transform>(it->second.first));
-		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixDynamic)));
-		event->setMetaData(it->second.second);
-		rsbInformerTransform->publish(event);
+	map<string, map<string, Transform> >::iterator itAuthorities;
+        
+	for (itAuthorities = sendCacheDynamic.begin(); itAuthorities != sendCacheDynamic.end(); itAuthorities++) {
+            
+            map<string, Transform >& authorityCache = itAuthorities->second;
+            string authority = itAuthorities->first;
+
+            MetaData meta;
+            meta.setUserInfo(userKeyAuthority, authority);
+            
+            map<string, Transform>::iterator it;
+            
+            if(legacyMode) {
+                
+                    for(it = authorityCache.begin(); it != authorityCache.end(); it++) {
+                            EventPtr event(rsbInformerTransform->createEvent());
+                            event->setData(make_shared< Transform >(it->second));
+                            event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixDynamic)));
+                            event->setMetaData(meta);
+                            rsbInformerTransform->publish(event);
+                    }
+                    
+            } else {
+                    EventPtr event(rsbInformerTransformCollection->createEvent());
+                    vector<Transform> transforms;
+                    for(it = authorityCache.begin(); it != authorityCache.end(); it++) {
+                        transforms.push_back(it->second);
+                    }
+                    event->setData(make_shared< vector<Transform> >(transforms));
+                    event->setScope(rsbInformerTransformCollection->getScope()->concat(Scope(scopeSuffixDynamic)));
+                    event->setMetaData(meta);
+                    rsbInformerTransformCollection->publish(event);
+            }
 	}
-	for (it = sendCacheStatic.begin(); it != sendCacheStatic.end(); it++) {
-		EventPtr event(rsbInformerTransform->createEvent());
-		event->setData(make_shared<Transform>(it->second.first));
-		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic)));
-		event->setMetaData(it->second.second);
-		rsbInformerTransform->publish(event);
+        
+	for (itAuthorities = sendCacheStatic.begin(); itAuthorities != sendCacheStatic.end(); itAuthorities++) {
+            EventPtr event(rsbInformerTransformCollection->createEvent());
+            
+            map<string, Transform >& authorityCache = itAuthorities->second;
+            string authority = itAuthorities->first;
+
+            MetaData meta;
+            meta.setUserInfo(userKeyAuthority, authority);
+            
+            map<string, Transform>::iterator it;
+            
+            if(legacyMode) {
+                
+                    for(it = authorityCache.begin(); it != authorityCache.end(); it++) {
+                            EventPtr event(rsbInformerTransform->createEvent());
+                            event->setData(make_shared< Transform >(it->second));
+                            event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic)));
+                            event->setMetaData(meta);
+                            rsbInformerTransform->publish(event);
+                    }
+                    
+            } else {
+                    EventPtr event(rsbInformerTransformCollection->createEvent());
+                    vector<Transform> transforms;
+                    for(it = authorityCache.begin(); it != authorityCache.end(); it++) {
+                        transforms.push_back(it->second);
+                    }
+                    event->setData(make_shared< vector<Transform> >(transforms));
+                    event->setScope(rsbInformerTransformCollection->getScope()->concat(Scope(scopeSuffixStatic)));
+                    event->setMetaData(meta);
+                    rsbInformerTransformCollection->publish(event);
+            }
 	}
 }
 
@@ -220,6 +343,18 @@ void TransformCommRsb::removeTransformListener(const TransformListener::Ptr& l) 
 	}
 }
 
+template<typename transformPtr>
+void processTransform(transformPtr t, string authority, vector<TransformListener::Ptr>& listeners, bool isStatic) {
+    t->setAuthority(authority);
+
+    boost::mutex::scoped_lock(mutex);
+    vector<TransformListener::Ptr>::iterator it0;
+    for (it0 = listeners.begin(); it0 != listeners.end(); ++it0) {
+            TransformListener::Ptr l = *it0;
+            l->newTransformAvailable(*t, isStatic);
+    }
+}
+
 void TransformCommRsb::transformCallback(EventPtr event) {
 	if (event->getMetaData().getSenderId() == rsbInformerTransform->getId()) {
 		RSCTRACE(logger,
@@ -227,22 +362,27 @@ void TransformCommRsb::transformCallback(EventPtr event) {
 		return;
 	}
 
-	boost::shared_ptr<Transform> t = boost::static_pointer_cast<Transform>(event->getData());
 	string authority = event->getMetaData().getUserInfo(userKeyAuthority);
-
-	Scope staticScope = rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic));
-	bool isStatic = (event->getScope() == staticScope);
-
-	t->setAuthority(authority);
-	RSCDEBUG(logger, "Received transform from " << authority);
-	RSCTRACE(logger, "Received transform: " << *t);
-
-	boost::mutex::scoped_lock(mutex);
-	vector<TransformListener::Ptr>::iterator it0;
-	for (it0 = listeners.begin(); it0 != listeners.end(); ++it0) {
-		TransformListener::Ptr l = *it0;
-		l->newTransformAvailable(*t, isStatic);
-	}
+        
+        bool isStatic = (event->getScope() == rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic)));
+        
+        if(event->getType() == rsc::runtime::typeName<FrameTransformCollection>()) {
+            boost::shared_ptr< vector<Transform> > ts = boost::static_pointer_cast< vector<Transform> >(event->getData());
+            RSCDEBUG(logger, "Received transform collection from " << authority);
+            for(int i=0; i<ts->size(); i++) {
+                Transform* t = &(ts->at(i));
+                
+                RSCTRACE(logger, "Received transform: " << *t);
+                
+                processTransform(t, authority, listeners, isStatic);
+            }
+        } else if(event->getType() == rsc::runtime::typeName<FrameTransform>()) {
+            boost::shared_ptr<Transform> t = boost::static_pointer_cast<Transform>(event->getData());
+            
+            RSCDEBUG(logger, "Received transform from " << authority);
+            RSCTRACE(logger, "Received transform: " << *t);
+            processTransform(t, authority, listeners, isStatic);
+        }
 }
 
 void TransformCommRsb::triggerCallback(EventPtr e) {
