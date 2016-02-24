@@ -378,7 +378,7 @@ void processTransform(transformPtr t, string authority, vector<TransformListener
 }
 
 void TransformCommRsb::transformCallback(EventPtr event) {
-	if (event->getMetaData().getSenderId() == rsbInformerTransform->getId()) {
+	if (event->getMetaData().getSenderId() == rsbInformerTransform->getId() || event->getMetaData().getSenderId() == rsbInformerTransformCollection->getId()) {
 		RSCTRACE(logger,
 				"Received transform from myself. Ignore. (id " << event->getMetaData().getSenderId().getIdAsString() << ")");
 		return;
