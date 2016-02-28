@@ -6,9 +6,13 @@
  */
 
 #include <rct/TransformerFactory.h>
+#include <rct/Exceptions.h>
 #include <iostream>
+#include <rsc/logging/Logger.h>
 
 int main(int argc, char **argv) {
+
+    rsc::logging::Logger::getLogger("rct")->setLevel(rsc::logging::Logger::LEVEL_TRACE);
 
 	rct::TransformReceiver::Ptr receiver = rct::getTransformerFactory().createTransformReceiver();
 

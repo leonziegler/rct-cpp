@@ -77,7 +77,7 @@ public:
 	 * \return True if the transform is possible, false otherwise
 	 */
 	virtual bool canTransform(const std::string& target_frame, const std::string& source_frame,
-			const boost::posix_time::ptime &time) const;
+			const boost::posix_time::ptime &time, std::string* error_msg = NULL) const;
 
 	/** \brief Test if a transform is possible
 	 * \param target_frame The frame into which to transform
@@ -90,7 +90,8 @@ public:
 	 */
 	virtual bool canTransform(const std::string& target_frame,
 			const boost::posix_time::ptime &target_time, const std::string& source_frame,
-			const boost::posix_time::ptime &source_time, const std::string& fixed_frame) const;
+			const boost::posix_time::ptime &source_time, const std::string& fixed_frame,
+            std::string* error_msg = NULL) const;
 
 	/** \brief A way to get a std::vector of available frame ids */
 	virtual std::vector<std::string> getFrameStrings() const;
@@ -139,7 +140,7 @@ private:
 		}
 	};
 
-	FrameTreeSimple tfBuffer;
+	FrameTreeSimple frameTreeBuffer;
 	boost::mutex inprogressMutex;
 	std::map<Request, FuturePtr> requestsInProgress;
 	boost::posix_time::ptime firstChangeTime;

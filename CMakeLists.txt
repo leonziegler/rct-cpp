@@ -72,11 +72,7 @@ add_definitions(-DBOOST_LOG_DYN_LINK)
 
 message(STATUS "Using CMake module path: ${CMAKE_MODULE_PATH}")
 
-find_package(tf2-minimal REQUIRED)
-include_directories(BEFORE SYSTEM  ${tf2-minimal_INCLUDE_DIRS})
-link_directories(${tf2-minimal_LIBRARY_DIRS})
-message(STATUS "tf2 version: ${tf2-minimal_VERSION}")
-set(RCT_HAVE_TF2 TRUE)
+
 
 if(BUILD_ROS_SUPPORT)
 	find_package(roscpp)
@@ -88,6 +84,11 @@ if(BUILD_ROS_SUPPORT)
 	else(roscpp_FOUND)
 		message(FATAL_ERROR "\nroscpp not found\nIn order skip building ROS support add option -DBUILD_ROS_SUPPORT=OFF")
 	endif(roscpp_FOUND)
+	find_package(tf2-minimal REQUIRED)
+	include_directories(BEFORE SYSTEM  ${tf2-minimal_INCLUDE_DIRS})
+	link_directories(${tf2-minimal_LIBRARY_DIRS})
+	message(STATUS "tf2 version: ${tf2-minimal_VERSION}")
+	set(RCT_HAVE_TF2 TRUE)
 endif(BUILD_ROS_SUPPORT)
 
 if(BUILD_RSB_SUPPORT)

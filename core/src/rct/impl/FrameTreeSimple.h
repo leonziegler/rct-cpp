@@ -67,7 +67,6 @@ public:
      * \param target_frame The frame into which to transform
      * \param source_frame The frame from which to transform
      * \param time The time at which to transform
-     * \param error_msg A pointer to a string which will be filled with why the transform failed, if not NULL
      * \return True if the transform is possible, false otherwise
      */
     virtual bool canTransform(const std::string& target_frame, const std::string& source_frame,
@@ -79,7 +78,6 @@ public:
      * \param source_frame The frame from which to transform
      * \param source_time The time from which to transform
      * \param fixed_frame The frame in which to treat the transform as constant in time
-     * \param error_msg A pointer to a string which will be filled with why the transform failed, if not NULL
      * \return True if the transform is possible, false otherwise
      */
     virtual bool canTransform(const std::string& target_frame,
@@ -126,14 +124,14 @@ private:
 
     /** \brief A mutex to protect testing and allocating new frames on the above vector. */
     mutable boost::mutex frameMutex;
-    mutable boost::mutex transformable_requests_mutex_;
+    mutable boost::mutex requestsMutex;
 
     boost::unordered_map<std::string, uint32_t> frameIDs;
     std::vector<std::string> frameIDsReverse;
     std::map<uint32_t, std::string> authorities;
 
     typedef boost::signals2::signal<void(void)> TransformsChangedSignal;
-    TransformsChangedSignal _transforms_changed_;
+    TransformsChangedSignal transformsChangedSignal;
 
     static const rsc::logging::LoggerPtr logger;
 

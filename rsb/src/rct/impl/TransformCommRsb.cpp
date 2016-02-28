@@ -11,6 +11,7 @@
 #include <rsb/Factory.h>
 #include <rsb/Handler.h>
 #include <rsb/Event.h>
+#include <rsb/EventId.h>
 #include <rsb/MetaData.h>
 #include <rsc/runtime/TypeStringTools.h>
 #include <log4cxx/log4cxx.h>
@@ -221,9 +222,10 @@ void TransformCommRsb::removeTransformListener(const TransformListener::Ptr& l) 
 }
 
 void TransformCommRsb::transformCallback(EventPtr event) {
-	if (event->getMetaData().getSenderId() == rsbInformerTransform->getId()) {
+
+	if (event->getId().getParticipantId() == rsbInformerTransform->getId()) {
 		RSCTRACE(logger,
-				"Received transform from myself. Ignore. (id " << event->getMetaData().getSenderId().getIdAsString() << ")");
+				"Received transform from myself. Ignore. (id " << event->getId().getParticipantId().getIdAsString() << ")");
 		return;
 	}
 
@@ -247,9 +249,9 @@ void TransformCommRsb::transformCallback(EventPtr event) {
 
 void TransformCommRsb::triggerCallback(EventPtr e) {
 
-	if (e->getMetaData().getSenderId() == rsbInformerSync->getId()) {
+	if (e->getId().getParticipantId() == rsbInformerSync->getId()) {
 		RSCTRACE(logger,
-				"Got sync request from myself. Ignore. (id " << e->getMetaData().getSenderId().getIdAsString() << ")");
+				"Got sync request from myself. Ignore. (id " << e->getId().getParticipantId().getIdAsString() << ")");
 		return;
 	}
 

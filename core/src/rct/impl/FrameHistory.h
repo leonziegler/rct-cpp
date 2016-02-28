@@ -14,6 +14,8 @@
 
 #include <list>
 
+#include <rsc/logging/Logger.h>
+
 namespace rct {
 
 struct TransformStorage {
@@ -92,6 +94,8 @@ public:
 private:
     std::list<TransformStorage> storage;
 
+    static const rsc::logging::LoggerPtr logger;
+
     boost::posix_time::time_duration maxStorageTime;
 
     inline uint8_t findClosest(TransformStorage*& one, TransformStorage*& two,
@@ -118,6 +122,7 @@ class StaticFrameHistory: public FrameHistory {
     boost::posix_time::ptime getOldestTime();
 private:
     TransformStorage storage;
+    static const rsc::logging::LoggerPtr logger;
 };
 
 } /* namespace rct */

@@ -19,34 +19,35 @@ namespace rct {
 rsc::logging::LoggerPtr TransformerSimple::logger = rsc::logging::Logger::getLogger("rct.core.TransformerSimple");
 
 TransformerSimple::TransformerSimple(const posix_time::time_duration& cacheTime) :
-		tfBuffer(cacheTime) {
+		frameTreeBuffer(cacheTime) {
 
-	tfBuffer.addTransformsChangedListener(bind(&TransformerSimple::treeChanged, this));
+	frameTreeBuffer.addTransformsChangedListener(bind(&TransformerSimple::treeChanged, this));
 }
 
 TransformerSimple::~TransformerSimple() {
 }
 
 void TransformerSimple::clear() {
-	tfBuffer.clear();
+	frameTreeBuffer.clear();
 }
 
 bool TransformerSimple::setTransform(const Transform& transform_in, bool is_static) {
 
-	return tfBuffer.setTransform(transform_in, is_static);
+	return frameTreeBuffer.setTransform(transform_in, is_static);
 }
 
 Transform TransformerSimple::lookupTransform(const std::string& target_frame,
 		const std::string& source_frame, const posix_time::ptime& time) const {
-
-	return tfBuffer.lookupTransform(target_frame, source_frame, time);
+    RSCTRACE(this->logger, "lookup " << target_frame << " -> " << source_frame);
+	return frameTreeBuffer.lookupTransform(target_frame, source_frame, time);
 }
 
 Transform TransformerSimple::lookupTransform(const std::string& target_frame,
 		const posix_time::ptime& target_time, const std::string& source_frame,
 		const posix_time::ptime& source_time,
 		const std::string& fixed_frame) const {
-	return tfBuffer.lookupTransform(target_frame, target_time, source_frame, source_time, fixed_frame);
+    RSCTRACE(this->logger, "lookup " << target_frame << " -> " << source_frame)
+	return frameTreeBuffer.lookupTransform(target_frame, target_time, source_frame, source_time, fixed_frame);
 }
 
 TransformerSimple::FuturePtr TransformerSimple::requestTransform(
@@ -82,6 +83,7 @@ TransformerSimple::FuturePtr TransformerSimple::requestTransform(
 void TransformerSimple::treeChanged() {
 	boost::mutex::scoped_lock lock(inprogressMutex);
 
+	RSCTRACE(this->logger, "Check requests");
 	if (firstChangeTime.is_not_a_date_time()) {
 		boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
 		firstChangeTime = boost::posix_time::ptime(boost::posix_time::microsec_clock::universal_time());
@@ -94,27 +96,28 @@ void TransformerSimple::treeChanged() {
 			if (t < firstChangeTime) {
 				t = firstChangeTime;
 			}
-			Transform t0 = tfBuffer.lookupTransform(it->first.target_frame,
+			Transform t0 = frameTreeBuffer.lookupTransform(it->first.target_frame,
 					it->first.source_frame, t);
 			it->second->set(t0);
 			requestsInProgress.erase(it);
 		} catch (LookupException &e) {
-			RSCTRACE(this->logger, "Not yet transformable ");
+            RSCTRACE(this->logger, "Not yet transformable. Lookup result: " << e.what());
 		} catch (ExtrapolationException &e) {
-			RSCTRACE(this->logger, "Not yet transformable ");
+			RSCTRACE(this->logger, "Not yet transformable. Lookup result: " << e.what());
 		}
 	}
 }
 
 bool TransformerSimple::canTransform(const std::string& target_frame, const std::string& source_frame,
-		const posix_time::ptime& time) const {
-	return tfBuffer.canTransform(target_frame, source_frame, time);
+		const posix_time::ptime& time, std::string* error_msg) const {
+	return frameTreeBuffer.canTransform(target_frame, source_frame, time);
 }
 
 bool TransformerSimple::canTransform(const std::string& target_frame,
 		const posix_time::ptime& target_time, const std::string& source_frame,
-		const posix_time::ptime& source_time, const std::string& fixed_frame) const {
-	return tfBuffer.canTransform(target_frame, target_time, source_frame,
+		const posix_time::ptime& source_time, const std::string& fixed_frame,
+        std::string* error_msg) const {
+	return frameTreeBuffer.canTransform(target_frame, target_time, source_frame,
 			source_time, fixed_frame);
 }
 
@@ -127,28 +130,28 @@ void TransformerSimple::printContents(std::ostream& stream) const {
 }
 
 std::vector<std::string> TransformerSimple::getFrameStrings() const {
-	return tfBuffer.getFrameStrings();
+	return frameTreeBuffer.getFrameStrings();
 }
 
 bool TransformerSimple::frameExists(const std::string& frame_id_str) const {
-	return tfBuffer.frameExists(frame_id_str);
+	return frameTreeBuffer.frameExists(frame_id_str);
 }
 
 std::string TransformerSimple::getParent(const std::string& frame_id,
 		const boost::posix_time::ptime &time) const {
-	return tfBuffer.getParent(frame_id, time);
+	return frameTreeBuffer.getParent(frame_id, time);
 }
 
 std::string TransformerSimple::allFramesAsDot() const {
-	return tfBuffer.allFramesAsDot();
+	return frameTreeBuffer.allFramesAsDot();
 }
 
 std::string TransformerSimple::allFramesAsYAML() const {
-	return tfBuffer.allFramesAsYAML();
+	return frameTreeBuffer.allFramesAsYAML();
 }
 
 std::string TransformerSimple::allFramesAsString() const {
-	return tfBuffer.allFramesAsString();
+	return frameTreeBuffer.allFramesAsString();
 }
 
 } /* namespace rct */

@@ -9,42 +9,40 @@
 
 #include <exception>
 
+namespace rct {
+
 /**
  * \brief General exception for the rct library.
  */
 class RctException: public std::exception {
 public:
-    RctException(const std::string &msg) :
-            msg(msg) {
+    RctException(const std::string &msg) throw() :
+            msg(msg), hasReason(false) {
 
     }
-    RctException(const std::string &msg, const std::exception &reason) :
-            msg(msg), reason(reason) {
+    RctException(const std::string &msg, const std::exception &reason) throw() :
+            msg(msg), reason(reason), hasReason(true) {
 
     }
-    RctException(const std::exception &reason) :
-            reason(reason) {
+    RctException(const std::exception &reason) throw() :
+            reason(reason), hasReason(true) {
 
     }
     virtual ~RctException() throw () {
     }
     virtual const char* what() const throw () {
-        std::string out;
-        if (msg.empty()) {
-            out = "RctException";
-        } else {
-            out = msg;
-        }
-        if (reason.what() != "") {
-            out += ". Reason: ";
-            out += reason.what();
-        }
-        return out.c_str();
+        if (msg.empty())
+            return "RctException";
+        else if (hasReason)
+            return (msg + ". Reason: " + reason.what()).c_str();
+        else
+            return msg.c_str();
     }
 
 private:
     std::string msg;
     std::exception reason;
+    bool hasReason;
 };
 
 /**
@@ -56,15 +54,15 @@ private:
  */
 class ExtrapolationException: public RctException {
 public:
-    ExtrapolationException(const std::string &msg) :
+    ExtrapolationException(const std::string &msg) throw() :
             RctException(msg) {
 
     }
-    ExtrapolationException(const std::string &msg, const std::exception &reason) :
+    ExtrapolationException(const std::string &msg, const std::exception &reason) throw() :
             RctException(msg, reason) {
 
     }
-    ExtrapolationException(const std::exception &reason) :
+    ExtrapolationException(const std::exception &reason) throw() :
             RctException("ExtrapolationException", reason) {
 
     }
@@ -77,15 +75,15 @@ public:
  */
 class LookupException: public RctException {
 public:
-    LookupException(const std::string &msg) :
+    LookupException(const std::string &msg) throw() :
             RctException(msg) {
 
     }
-    LookupException(const std::string &msg, const std::exception &reason) :
+    LookupException(const std::string &msg, const std::exception &reason) throw() :
             RctException(msg, reason) {
 
     }
-    LookupException(const std::exception &reason) :
+    LookupException(const std::exception &reason) throw() :
             RctException("LookupException", reason) {
 
     }
@@ -98,15 +96,15 @@ public:
  */
 class InvalidArgumentException: public RctException {
 public:
-    InvalidArgumentException(const std::string &msg) :
+    InvalidArgumentException(const std::string &msg) throw() :
             RctException(msg) {
 
     }
-    InvalidArgumentException(const std::string &msg, const std::exception &reason) :
+    InvalidArgumentException(const std::string &msg, const std::exception &reason) throw() :
             RctException(msg, reason) {
 
     }
-    InvalidArgumentException(const std::exception &reason) :
+    InvalidArgumentException(const std::exception &reason) throw() :
             RctException("InvalidArgumentException", reason) {
 
     }
@@ -119,19 +117,21 @@ public:
  */
 class ConnectivityException: public RctException {
 public:
-    ConnectivityException(const std::string &msg) :
+    ConnectivityException(const std::string &msg) throw() :
             RctException(msg) {
 
     }
-    ConnectivityException(const std::string &msg, const std::exception &reason) :
+    ConnectivityException(const std::string &msg, const std::exception &reason) throw() :
             RctException(msg, reason) {
 
     }
-    ConnectivityException(const std::exception &reason) :
+    ConnectivityException(const std::exception &reason) throw() :
             RctException("ConnectivityException", reason) {
 
     }
     virtual ~ConnectivityException() throw () {
     }
 };
+
+}
 

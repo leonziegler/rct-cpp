@@ -12,6 +12,9 @@ using namespace std;
 
 namespace rct {
 
+const rsc::logging::LoggerPtr DynamicFrameHistory::logger = rsc::logging::Logger::getLogger(
+        "rct.core.DynamicFrameHistory");
+
 DynamicFrameHistory::DynamicFrameHistory(const boost::posix_time::time_duration& maxStorageTime) :
         maxStorageTime(maxStorageTime) {
 }
@@ -20,20 +23,20 @@ DynamicFrameHistory::~DynamicFrameHistory() {
 }
 
 TransformStorage DynamicFrameHistory::getData(boost::posix_time::ptime time) {
-    TransformStorage* p_temp_1;
-    TransformStorage* p_temp_2;
+    TransformStorage* tempStore1;
+    TransformStorage* tempStore2;
 
-    int num_nodes = findClosest(p_temp_1, p_temp_2, time);
-    if (num_nodes == 0) {
+    int nodes = findClosest(tempStore1, tempStore2, time);
+    if (nodes == 0) {
         throw RctException("No data yet");
-    } else if (num_nodes == 1) {
-        return *p_temp_1;
-    } else if (num_nodes == 2) {
-        if (p_temp_1->frameParent == p_temp_2->frameParent) {
+    } else if (nodes == 1) {
+        return *tempStore1;
+    } else if (nodes == 2) {
+        if (tempStore1->frameParent == tempStore2->frameParent) {
 
-            return interpolate(*p_temp_1, *p_temp_2, time);
+            return interpolate(*tempStore1, *tempStore2, time);
         } else {
-            return *p_temp_1;
+            return *tempStore1;
         }
     } else {
         assert(0);
@@ -41,21 +44,22 @@ TransformStorage DynamicFrameHistory::getData(boost::posix_time::ptime time) {
     throw RctException("No data yet");
 }
 
-bool DynamicFrameHistory::insertData(const TransformStorage& new_data) {
-    list<TransformStorage>::iterator storage_it = storage.begin();
+bool DynamicFrameHistory::insertData(const TransformStorage& data) {
+    list<TransformStorage>::iterator storageIterator = storage.begin();
 
-    if (storage_it != storage.end()) {
-        if (storage_it->time > new_data.time + maxStorageTime) {
+    if (storageIterator != storage.end()) {
+        if (storageIterator->time > data.time + maxStorageTime) {
             return false;
         }
     }
 
-    while (storage_it != storage.end()) {
-        if (storage_it->time <= new_data.time)
+    while (storageIterator != storage.end()) {
+        if (storageIterator->time <= data.time)
             break;
-        storage_it++;
+        storageIterator++;
     }
-    storage.insert(storage_it, new_data);
+    storage.insert(storageIterator, data);
+    //RSCTRACE(this->logger, "inserted " << data.time);
 
     pruneList();
     return true;
@@ -66,15 +70,15 @@ void DynamicFrameHistory::clearList() {
 }
 
 uint32_t DynamicFrameHistory::getParent(boost::posix_time::ptime time) {
-    TransformStorage* p_temp_1;
-    TransformStorage* p_temp_2;
+    TransformStorage* tempStore1;
+    TransformStorage* tempStore2;
 
-    int num_nodes = findClosest(p_temp_1, p_temp_2, time);
+    int num_nodes = findClosest(tempStore1, tempStore2, time);
     if (num_nodes == 0) {
         return 0;
     }
 
-    return p_temp_1->frameParent;
+    return tempStore1->frameParent;
 }
 
 std::pair<boost::posix_time::ptime, uint32_t> DynamicFrameHistory::getLatestTimeAndParent() {
@@ -130,41 +134,43 @@ inline uint8_t DynamicFrameHistory::findClosest(TransformStorage*& one, Transfor
         }
     }
 
-    boost::posix_time::ptime latest_time = (*storage.begin()).time;
-    boost::posix_time::ptime earliest_time = (*(storage.rbegin())).time;
+    boost::posix_time::ptime timeLatest = (*storage.begin()).time;
+    boost::posix_time::ptime timeEarliest = (*(storage.rbegin())).time;
+    //RSCTRACE(this->logger, "timeLatest " << timeLatest);
+    //RSCTRACE(this->logger, "timeEarliest " << timeEarliest);
 
-    if (target_time == latest_time) {
+    if (target_time == timeLatest) {
         one = &(*storage.begin());
         return 1;
-    } else if (target_time == earliest_time) {
+    } else if (target_time == timeEarliest) {
         one = &(*storage.rbegin());
         return 1;
     }
     // Catch cases that would require extrapolation
-    else if (target_time > latest_time) {
+    else if (target_time > timeLatest) {
         std::stringstream ss;
-        ss << "Lookup would require extrapolation into the future.  Requested time " << target_time
-                << " but the latest data is at time " << latest_time;
+        ss << "Lookup would require extrapolation into the future. Requested time " << target_time
+                << " but the latest data is at time " << timeLatest;
         throw ExtrapolationException(ss.str());
-    } else if (target_time < earliest_time) {
+    } else if (target_time < timeEarliest) {
         std::stringstream ss;
-        ss << "Lookup would require extrapolation into the past.  Requested time " << target_time
-                << " but the earliest data is at time " << earliest_time;
+        ss << "Lookup would require extrapolation into the past. Requested time " << target_time
+                << " but the earliest data is at time " << timeEarliest;
         throw ExtrapolationException(ss.str());
     }
 
     //At least 2 values stored
     //Find the first value less than the target value
-    list<TransformStorage>::iterator storage_it = storage.begin();
-    while (storage_it != storage.end()) {
-        if (storage_it->time <= target_time)
+    list<TransformStorage>::iterator storageIterator = storage.begin();
+    while (storageIterator != storage.end()) {
+        if (storageIterator->time <= target_time)
             break;
-        storage_it++;
+        storageIterator++;
     }
 
-    //Finally the case were somewhere in the middle  Guarenteed no extrapolation :-)
-    one = &*(storage_it); //Older
-    two = &*(--storage_it); //Newer
+    //Finally the case were somewhere in the middle. Guarenteed no extrapolation :-)
+    one = &*(storageIterator); //Older
+    two = &*(--storageIterator); //Newer
     return 2;
 }
 
@@ -199,12 +205,15 @@ inline TransformStorage DynamicFrameHistory::interpolate(const TransformStorage&
 }
 
 void DynamicFrameHistory::pruneList() {
-    boost::posix_time::ptime latest_time = storage.begin()->time;
+    boost::posix_time::ptime timeLatest = storage.begin()->time;
 
-    while (!storage.empty() && storage.back().time + maxStorageTime < latest_time) {
+    while (!storage.empty() && storage.back().time + maxStorageTime < timeLatest) {
         storage.pop_back();
     }
 }
+
+const rsc::logging::LoggerPtr StaticFrameHistory::logger = rsc::logging::Logger::getLogger(
+        "rct.core.StaticFrameHistory");
 
 TransformStorage StaticFrameHistory::getData(boost::posix_time::ptime time) {
     TransformStorage out(storage);
@@ -212,8 +221,8 @@ TransformStorage StaticFrameHistory::getData(boost::posix_time::ptime time) {
     return out;
 }
 
-bool StaticFrameHistory::insertData(const TransformStorage& new_data) {
-    storage = new_data;
+bool StaticFrameHistory::insertData(const TransformStorage& data) {
+    storage = data;
     return true;
 }
 

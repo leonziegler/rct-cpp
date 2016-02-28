@@ -7,6 +7,7 @@
 
 #include "TransformerFactory.h"
 #include "rct/rctConfig.h"
+#include "impl/TransformerSimple.h"
 #ifdef RCT_HAVE_TF2
 #include "impl/TransformerTF2.h"
 #endif
@@ -52,9 +53,12 @@ TransformReceiver::Ptr TransformerFactory::createTransformReceiver(const vector<
 	TransformerCore::Ptr core;
 
 #ifdef RCT_HAVE_TF2
-	core = TransformerTF2::Ptr(new TransformerTF2(config.getCacheTime()));
+	if (config.getCoreType() == TransformerConfig::TF2)
+	    core = TransformerTF2::Ptr(new TransformerTF2(config.getCacheTime()));
+	else
+	    core = TransformerSimple::Ptr(new TransformerSimple(config.getCacheTime()));
 #else
-	throw TransformerFactoryException("No known logic implementation available!");
+	core = TransformerSimple::Ptr(new TransformerSimple(config.getCacheTime()));
 #endif
 
 	allListeners.push_back(core);

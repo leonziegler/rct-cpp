@@ -22,6 +22,10 @@ public:
 		AUTO, RSB, ROS
 	};
 
+	enum CoreType {
+	    DEFAULT, TF2
+	};
+
 	static std::string typeToString(CommunicatorType type) {
 		switch (type) {
 		case AUTO:
@@ -35,8 +39,17 @@ public:
 		}
 	}
 
+    static std::string typeToString(CoreType type) {
+        switch (type) {
+        case TF2:
+            return "TF2";
+        default:
+            return "DEFAULT";
+        }
+    }
+
 	TransformerConfig() :
-			commType(AUTO), cacheTime(
+			commType(AUTO), coreType(DEFAULT), cacheTime(
 					boost::posix_time::time_duration(0, 0, 30)) {
 	}
 	virtual ~TransformerConfig() {
@@ -57,6 +70,14 @@ public:
 	void setCommType(CommunicatorType commType) {
 		this->commType = commType;
 	}
+
+    CoreType getCoreType() const {
+        return coreType;
+    }
+
+    void setCoreType(CoreType coreType) {
+        this->coreType = coreType;
+    }
 
 	/**
 	 * Returns additional options besides the transformer-specific ones.
@@ -101,12 +122,22 @@ public:
 			stream << "comm = UNKNOWN";
 			break;
 		}
+		stream << ", ";
+		switch (coreType) {
+        case TF2:
+            stream << "core = TF2";
+            break;
+        default:
+            stream << "core = DEFAULT";
+            break;
+        }
 		stream << ", cacheTime = " << cacheTime;
 
 	}
 
 private:
 	CommunicatorType commType;
+	CoreType coreType;
 	boost::posix_time::time_duration cacheTime;
 	rsc::runtime::Properties options;
 	void handleOption(const std::vector<std::string>& key,
@@ -148,6 +179,28 @@ private:
 											% value));
 				}
 			}
+
+        } else if (key[0] == "core") {
+            if (key.size() != 2) {
+                throw std::invalid_argument(
+                        boost::str(
+                                boost::format(
+                                        "Option key `%1%' has invalid number of components; options related to core implementation have to have two components.")
+                                        % key));
+            }
+            if (key[1] == "type") {
+                if (value == "TF2") {
+                    this->coreType = TF2;
+                } else if (value == "DEFAULT") {
+                    this->coreType = DEFAULT;
+                } else {
+                    throw std::invalid_argument(
+                            boost::str(
+                                    boost::format(
+                                            "Value `%1%' does not name a core type.")
+                                            % value));
+                }
+            }
 
 		} else {
 			if (key.size() == 1) {
