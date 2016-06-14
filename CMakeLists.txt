@@ -56,8 +56,10 @@ include_directories(BEFORE SYSTEM  ${Eigen3_INCLUDE_DIRS})
 link_directories(${Eigen3_LIBRARY_DIRS})
 
 #rsc
-find_package(RSC 0.11 REQUIRED)
+find_package(RSC 0.13 REQUIRED)
+find_package(RSC-CMake 0.13 REQUIRED)
 message(STATUS "RSC version: ${RSC_VERSION}")
+message(STATUS "RSC-CMake version: ${RSC-CMake_VERSION}")
 include_directories(BEFORE SYSTEM ${RSC_INCLUDE_DIRS})
 link_directories(${RSC_LIBRARY_DIRS})
 
@@ -102,8 +104,8 @@ if(BUILD_RSB_SUPPORT)
 	endif()
 	
 	#rsb/t
-	find_package(RSB 0.11 QUIET)
-	find_package(RST 0.11 QUIET)
+	find_package(RSB 0.13 QUIET)
+	find_package(RST 0.13 QUIET)
 	if(RSB_FOUND AND RST_FOUND)
 		message(STATUS "RSB version: ${RSB_VERSION}")
 		message(STATUS "RST version: ${RST_VERSION}")
