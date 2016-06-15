@@ -63,11 +63,10 @@ message(STATUS "RSC-CMake version: ${RSC-CMake_VERSION}")
 include_directories(BEFORE SYSTEM ${RSC_INCLUDE_DIRS})
 link_directories(${RSC_LIBRARY_DIRS})
 
-find_package(RSC-CMake 0.11 REQUIRED)
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_INSTALL_PREFIX}/share/cmake/Modules" ${RSC_CMAKE_MODULE_PATH})
 
 #boost
-find_package(Boost REQUIRED QUIET COMPONENTS thread program_options date_time)
+find_package(Boost REQUIRED QUIET COMPONENTS system thread program_options date_time)
 include_directories(${Boost_INCLUDE_DIRS})
 add_definitions(-DBOOST_LOG_DYN_LINK)
 
