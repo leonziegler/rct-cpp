@@ -132,7 +132,7 @@ void TransformCommRsb::requestSync() {
 			"Sending sync request trigger from id " << rsbInformerSync->getId().getIdAsString());
 
 	// trigger other instances to send transforms
-	rsbInformerSync->publish(shared_ptr<void>());
+	rsbInformerSync->publish(boost::shared_ptr<void>());
 }
 
 bool TransformCommRsb::sendTransform(const Transform& transform, TransformType type) {
@@ -155,7 +155,7 @@ bool TransformCommRsb::sendTransform(const Transform& transform, TransformType t
 	RSCTRACE(logger,
 			"Publishing transform from " << rsbInformerTransform->getId().getIdAsString());
 	EventPtr event(rsbInformerTransform->createEvent());
-	event->setData(make_shared<Transform>(transform));
+	event->setData(boost::make_shared<Transform>(transform));
 	event->setMetaData(meta);
 
 	if (type == STATIC) {
@@ -188,14 +188,14 @@ void TransformCommRsb::publishCache() {
 	map<string, std::pair<Transform, MetaData> >::iterator it;
 	for (it = sendCacheDynamic.begin(); it != sendCacheDynamic.end(); it++) {
 		EventPtr event(rsbInformerTransform->createEvent());
-		event->setData(make_shared<Transform>(it->second.first));
+		event->setData(boost::make_shared<Transform>(it->second.first));
 		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixDynamic)));
 		event->setMetaData(it->second.second);
 		rsbInformerTransform->publish(event);
 	}
 	for (it = sendCacheStatic.begin(); it != sendCacheStatic.end(); it++) {
 		EventPtr event(rsbInformerTransform->createEvent());
-		event->setData(make_shared<Transform>(it->second.first));
+		event->setData(boost::make_shared<Transform>(it->second.first));
 		event->setScope(rsbInformerTransform->getScope()->concat(Scope(scopeSuffixStatic)));
 		event->setMetaData(it->second.second);
 		rsbInformerTransform->publish(event);

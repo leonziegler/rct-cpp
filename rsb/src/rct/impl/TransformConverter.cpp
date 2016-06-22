@@ -58,7 +58,7 @@ TransformConverter::TransformConverter():
                 rsb::converter::Converter<string>(
                         rsc::runtime::typeName<FrameTransform>(),
                         RSB_TYPE_TAG(Transform)) {
-	converter = shared_ptr<Converter<string> >(new ProtocolBufferConverter<FrameTransform>);
+	converter = boost::shared_ptr<Converter<string> >(new ProtocolBufferConverter<FrameTransform>);
 }
 
 TransformConverter::~TransformConverter() {
@@ -70,7 +70,7 @@ std::string TransformConverter::getWireSchema() const {
 
 std::string TransformConverter::serialize(const rsb::AnnotatedData& data, std::string& wire) {
 	// Cast to original domain type
-	shared_ptr<Transform> domain = static_pointer_cast<Transform>(data.second);
+    boost::shared_ptr<Transform> domain = static_pointer_cast<Transform>(data.second);
 
 	// Fill protocol buffer object
 	rct::FrameTransform proto;
